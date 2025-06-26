@@ -1,5 +1,7 @@
 ## Overview
 
+[![codecov](https://codecov.io/gh/vechain/stargate-contracts/graph/badge.svg?token=3OMYFKUMS9)](https://app.codecov.io/gh/vechain/stargate-contracts)
+
 ```
 //        ✦     *        .         ✶         *        .       ✦       .
 //  ✦   _______..___________.    ___      .______        _______      ___   .___________. _______   ✦
