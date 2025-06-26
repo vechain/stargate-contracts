@@ -128,13 +128,7 @@ or
   yarn dev:testnet
 ```
 
-or
-
-```bash
-  yarn dev:mainnet
-```
-
-If you want to change any of the config values for the deployment you can do so in the `packages/config/contracts/envs/local.ts` or `packages/config/contracts/envs/testnet.ts` or `packages/config/contracts/envs/mainnet.ts` file.
+If you want to change any of the config values for the deployment you can do so in the `packages/config/contracts/envs/local.ts` or `packages/config/contracts/envs/testnet.ts`.
 
 ### Deploy contracts only (no frontend)
 
@@ -152,20 +146,10 @@ To change the network you can do as follows:
   yarn contracts:deploy:testnet
 ```
 
-```bash
-  yarn contracts:deploy:mainnet
-```
-
 ### Spin down the Solo Network
 
 ```bash
   yarn solo-down
-```
-
-### Clean docker solo network
-
-```bash
-  yarn solo-clean
 ```
 
 ## Running on Testnet 🌐
@@ -182,22 +166,6 @@ _This will not save the addresses in the `packages/config/testnet.ts` file. You 
 
 ```bash
   yarn dev:testnet
-```
-
-## Running on Mainnet 🌐
-
-### Deploy the contracts on the Mainnet:
-
-```bash
-  yarn contracts:deploy:mainnet
-```
-
-_This will not save the addresses in the `packages/config/mainnet.ts` file. You need to do that manually._
-
-### Run the frontend to interact with the contracts on the Mainnet:
-
-```bash
-  yarn dev:mainnet
 ```
 
 ### Run tests
