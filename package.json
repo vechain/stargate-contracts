@@ -1,0 +1,42 @@
+{
+  "name": "stargate-contracts",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "build:testnet": "dotenv -v VITE_APP_ENV=testnet -e .env -- turbo build:testnet",
+    "lint": "turbo lint",
+    "clean": "turbo clean",
+    "purge": "turbo purge",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "dev": "yarn && dotenv -v VITE_APP_ENV=local -- turbo dev --",
+    "dev:testnet": "yarn && dotenv -v VITE_APP_ENV=testnet -e .env -- turbo dev:testnet --",
+    "contracts:compile": "turbo compile --filter=contracts",
+    "contracts:deploy": "dotenv -v VITE_APP_ENV=local -- turbo deploy --filter=contracts",
+    "contracts:deploy:solo": "dotenv -v VITE_APP_ENV=local -- turbo deploy:solo --filter=@repo/contracts",
+    "contracts:deploy:testnet": "dotenv -v VITE_APP_ENV=testnet -- turbo deploy:testnet --filter=contracts",
+    "contracts:test": "dotenv -v VITE_APP_ENV=local -- turbo test:hardhat --filter=@repo/contracts",
+    "contracts:generate-docs": "dotenv -v VITE_APP_ENV=local -- turbo generate-docs --filter=contracts",
+    "contracts:upgrade": "dotenv -v VITE_APP_ENV=local -- yarn workspace @repo/contracts ts-node scripts/upgrade/select-and-upgrade.ts",
+    "contracts:upgrade:testnet": "dotenv -v VITE_APP_ENV=testnet -- yarn workspace @repo/contracts ts-node scripts/upgrade/select-and-upgrade.ts",
+    "test:coverage:solidity": "dotenv -v VITE_APP_ENV=local -v IS_TEST_COVERAGE=true -e .env.example turbo test:coverage:solidity",
+    "check-contracts-deployment": "dotenv -v VITE_APP_ENV=local turbo check-contracts-deployment --filter=contracts",
+    "check-contracts-deployment:testnet": "dotenv -v VITE_APP_ENV=testnet turbo check-contracts-deployment:testnet --filter=contracts",
+    "solo-up": "make solo-up",
+    "solo-down": "make solo-down",
+    "solo-clean": "make solo-clean",
+    "contracts:verify:testnet": "dotenv -v VITE_APP_ENV=testnet -- turbo verify:testnet --filter=contracts -- "
+  },
+  "devDependencies": {
+    "dotenv-cli": "latest",
+    "turbo": "^1.13.3",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "yarn@1.22.17",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

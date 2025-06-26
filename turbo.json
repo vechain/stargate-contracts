@@ -1,0 +1,179 @@
+{
+  "$schema": "https://turbo.build/schema.v1.json",
+  "globalDotEnv": [".env"],
+  "globalDependencies": ["**/.env.*local"],
+  "globalEnv": ["VITE_APP_ENV", "MNEMONIC"],
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^compile"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "build:testnet": {
+      "cache": false,
+      "dependsOn": [
+        "@repo/contracts#compile",
+        "^compile",
+        "@repo/config#check-or-generate-local-config"
+      ],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "build:mainnet": {
+      "cache": false,
+      "dependsOn": [
+        "@repo/contracts#compile",
+        "^compile",
+        "@repo/config#check-or-generate-local-config"
+      ],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "build:rewards": {
+      "cache": false,
+      "dependsOn": [
+        "@repo/contracts#compile",
+        "^compile",
+        "@repo/config#check-or-generate-local-config"
+      ],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["@repo/contracts#check-contracts-deployment"]
+    },
+    "dev:testnet": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["@repo/contracts#check-contracts-deployment:testnet"]
+    },
+    "dev:mainnet": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["@repo/contracts#check-contracts-deployment:mainnet"]
+    },
+    "dev:rewards": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["@repo/contracts#check-contracts-deployment:rewards"]
+    },
+    "check-contracts-deployment": {
+      "cache": false,
+      "dependsOn": ["@repo/contracts#check-contracts-deployment"]
+    },
+    "check-contracts-deployment:testnet": {
+      "cache": false,
+      "dependsOn": [
+        "^compile",
+        "@repo/contracts#check-contracts-deployment:testnet"
+      ]
+    },
+    "check-contracts-deployment:mainnet": {
+      "cache": false,
+      "dependsOn": [
+        "^compile",
+        "@repo/contracts#check-contracts-deployment:mainnet"
+      ]
+    },
+    "check-contracts-deployment:rewards": {
+      "cache": false,
+      "dependsOn": [
+        "^compile",
+        "@repo/contracts#check-contracts-deployment:rewards"
+      ]
+    },
+    "@repo/config#check-or-generate-local-config": {
+      "cache": false
+    },
+    "@repo/contracts#check-contracts-deployment": {
+      "cache": false,
+      "dependsOn": ["^compile"]
+    },
+    "@repo/contracts#check-contracts-deployment:testnet": {
+      "cache": false,
+      "dependsOn": ["^compile", "@repo/config#check-or-generate-local-config"]
+    },
+    "@repo/contracts#check-contracts-deployment:mainnet": {
+      "cache": false,
+      "dependsOn": ["^compile", "@repo/config#check-or-generate-local-config"]
+    },
+    "@repo/contracts#check-contracts-deployment:rewards": {
+      "cache": false,
+      "dependsOn": ["^compile", "@repo/config#check-or-generate-local-config"]
+    },
+    "clean": {
+      "cache": false
+    },
+    "purge": {
+      "cache": false
+    },
+    "compile": {
+      "cache": false,
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "deploy": {
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "deploy:solo": {
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "deploy:testnet": {
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "deploy:mainnet": {
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "deploy:rewards": {
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "test": {
+      "cache": false,
+      "dependsOn": ["^compile", "test:hardhat"]
+    },
+    "test:watch": {
+      "cache": false,
+      "dependsOn": ["^compile", "@repo/config#check-or-generate-local-config"]
+    },
+    "test:coverage:solidity": {
+      "cache": false,
+      "dependsOn": ["^@repo/config#check-or-generate-local-config"]
+    },
+    "test:thor-solo": {
+      "cache": false
+    },
+    "test:hardhat": {
+      "cache": false,
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "generate-docs": {
+      "cache": false
+    },
+    "verify:testnet": {
+      "cache": false,
+      "dependsOn": ["^compile"]
+    },
+    "verify:mainnet": {
+      "cache": false,
+      "dependsOn": ["^compile"]
+    },
+    "upload-stargate-nft-metadata": {
+      "cache": false,
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "upgrade:contract": {
+      "dependsOn": ["@repo/config#check-or-generate-local-config"],
+      "outputs": [],
+      "cache": false
+    },
+    "upgrade:contract:local": {
+      "dependsOn": ["upgrade:contract"]
+    },
+    "upgrade:contract:testnet": {
+      "dependsOn": ["upgrade:contract"]
+    },
+    "upgrade:contract:mainnet": {
+      "dependsOn": ["upgrade:contract"]
+    }
+  }
+}

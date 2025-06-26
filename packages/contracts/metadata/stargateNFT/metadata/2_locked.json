@@ -1,0 +1,15 @@
+{
+  "name": "Delegator Thunder",
+  "description": "StarGate Delegator Tokens represent on-chain VET staking positions. Each NFT is backed by staked VET, earns VTHO rewards, and enables access to ecosystem utilities and integrations.",
+  "image": "ipfs://bafkreibqqjlk7u2ee7vjthi5nzq5eydcn4n56sjpjrdjcyva5volzklgwu",
+  "attributes": [
+    {
+      "trait_type": "Level",
+      "value": 2
+    },
+    {
+      "trait_type": "Locked",
+      "value": "Yes"
+    }
+  ]
+}

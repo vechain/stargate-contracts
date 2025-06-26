@@ -1,0 +1,15 @@
+{
+  "name": "Delegator Flash",
+  "description": "StarGate Delegator Tokens represent on-chain VET staking positions. Each NFT is backed by staked VET, earns VTHO rewards, and enables access to ecosystem utilities and integrations.",
+  "image": "ipfs://bafkreih3gibww3ujilfocuc7j462i3cpn7cieq6w5rsw6zvzkgjkdrcdom",
+  "attributes": [
+    {
+      "trait_type": "Level",
+      "value": 10
+    },
+    {
+      "trait_type": "Locked",
+      "value": "Yes"
+    }
+  ]
+}

@@ -1,0 +1,249 @@
+import { ContractsConfig } from "@repo/config/contracts";
+import { ethers, network } from "hardhat";
+import {
+  deployAndUpgrade,
+  saveContractsToFile,
+  addToken,
+  parseTokenMetadata,
+  deployUpgradeableWithoutInitialization,
+  initializeProxy,
+} from "../../../helpers";
+import { StargateNFT, StargateDelegation, NodeManagementV2 } from "../../../../typechain-types";
+import { HttpNetworkConfig } from "hardhat/types";
+import { StrengthLevel } from "@repo/config/contracts/VechainNodes";
+import { deployStargateNFTLibraries } from "../../libraries";
+import { getConfig } from "@repo/config";
+import { overrideLocalConfigWithNewContracts } from "../../../overrideConfigFile";
+
+interface DeployedContractsAddresses {
+  TokenAuctionMock: string;
+  ClockAuctionMock: string;
+  ERC721Mock: string;
+  ERC1155Mock: string;
+  StargateNFT: string;
+  StargateDelegation: string;
+  NodeManagement: string;
+}
+
+export async function deployTestnetRelease(
+  config: ContractsConfig
+): Promise<DeployedContractsAddresses> {
+  const start = performance.now();
+
+  console.log("================ START deployment");
+
+  const networkConfig = network.config as HttpNetworkConfig;
+  console.log(
+    `Network and config: ${network.name} (${networkConfig.url}) with ${config.VITE_APP_ENV} configurations `
+  );
+
+  const [deployer, ...otherAccounts] = await ethers.getSigners();
+  console.log(`Address used to deploy: ${deployer.address}`);
+  console.log(
+    `Admin will be set to: ${deployer.address}\n Execute the roles_transfer.ts script, after this one, to transfer the StarGate roles to the admin`
+  );
+
+  if (network.name !== "vechain_testnet") {
+    throw new Error(
+      "This script is only meant to be used on testnet. Remove this check to continue"
+    );
+  }
+
+  // ---------------------- Deploy Mocks if not mainnet ----------------------
+  let vechainNodesMockAddress, clockAuctionMockAddress, erc721MockAddress, erc1155MockAddress;
+
+  let vechainNodesMock = await ethers.getContractAt(
+    "TokenAuction",
+    config.TOKEN_AUCTION_CONTRACT_ADDRESS
+  );
+
+  console.log("================ Deploying mocked contracts...");
+
+  console.log("Deploying TokenAuction...");
+  const TokenAuctionFactory = await ethers.getContractFactory("TokenAuction");
+  vechainNodesMock = await TokenAuctionFactory.deploy();
+  await vechainNodesMock.waitForDeployment();
+
+  vechainNodesMockAddress = await vechainNodesMock.getAddress();
+  console.log(`TokenAuction (Mocked Nodes) contract deployed at: ${vechainNodesMockAddress}`);
+
+  console.log("Deploying ClockAuction...");
+  const ClockAuctionFactory = await ethers.getContractFactory("ClockAuction");
+  const clockAuctionMock = await ClockAuctionFactory.deploy(
+    vechainNodesMockAddress,
+    deployer.address
+  );
+  await clockAuctionMock.waitForDeployment();
+
+  clockAuctionMockAddress = await clockAuctionMock.getAddress();
+  console.log(`ClockAuction contract deployed at: ${clockAuctionMockAddress}`);
+
+  // Configure Mocked Nodes contract
+  await vechainNodesMock.setSaleAuctionAddress(clockAuctionMockAddress);
+  await vechainNodesMock.addOperator(deployer.address);
+
+  console.log("Done");
+
+  // ---------------------- Deploy Project contracts ----------------------
+  console.log(`================ Deploying Stargate contracts...`);
+
+  console.log("Deploying the StargateNFT libraries...");
+  const {
+    StargateNFTClockLib,
+    StargateNFTSettingsLib,
+    StargateNFTTokenLib,
+    StargateNFTMintingLib,
+    StargateNFTVetGeneratedVthoLib,
+    StargateNFTLevelsLib,
+  } = await deployStargateNFTLibraries({ logOutput: true });
+
+  console.log("Deploying StargateNFT...");
+  const stargateNFTProxyAddress = await deployUpgradeableWithoutInitialization(
+    "StargateNFT",
+    {
+      Clock: await StargateNFTClockLib.getAddress(),
+      MintingLogic: await StargateNFTMintingLib.getAddress(),
+      Settings: await StargateNFTSettingsLib.getAddress(),
+      Token: await StargateNFTTokenLib.getAddress(),
+      VetGeneratedVtho: await StargateNFTVetGeneratedVthoLib.getAddress(),
+      Levels: await StargateNFTLevelsLib.getAddress(),
+    },
+    true
+  );
+
+  console.log(`Deploying StargateDelegation...`);
+  const stargateDelegationProxyAddress = await deployUpgradeableWithoutInitialization(
+    "StargateDelegation",
+    {},
+    true
+  );
+
+  console.log("Initializing proxies...");
+  console.log("StargateNFT");
+  const stargateNFT = (await initializeProxy(
+    stargateNFTProxyAddress,
+    "StargateNFT",
+    [
+      {
+        tokenCollectionName: config.TOKEN_COLLECTION_NAME,
+        tokenCollectionSymbol: config.TOKEN_COLLECTION_SYMBOL,
+        baseTokenURI: config.BASE_TOKEN_URI,
+        admin: deployer.address,
+        upgrader: deployer.address,
+        pauser: deployer.address,
+        levelOperator: deployer.address,
+        legacyNodes: vechainNodesMockAddress,
+        stargateDelegation: stargateDelegationProxyAddress,
+        legacyLastTokenId: config.LEGACY_LAST_TOKEN_ID,
+        levelsAndSupplies: config.TOKEN_LEVELS,
+        vthoToken: config.VTHO_TOKEN_ADDRESS,
+      },
+    ],
+    {
+      Clock: await StargateNFTClockLib.getAddress(),
+      MintingLogic: await StargateNFTMintingLib.getAddress(),
+      Settings: await StargateNFTSettingsLib.getAddress(),
+      Token: await StargateNFTTokenLib.getAddress(),
+      VetGeneratedVtho: await StargateNFTVetGeneratedVthoLib.getAddress(),
+      Levels: await StargateNFTLevelsLib.getAddress(),
+    }
+  )) as StargateNFT;
+  console.log("StargateNFT initialized");
+
+  console.log("StargateDelegation");
+  const stargateDelegation = (await initializeProxy(
+    stargateDelegationProxyAddress,
+    "StargateDelegation",
+    [
+      {
+        upgrader: deployer.address,
+        admin: deployer.address,
+        stargateNFT: await stargateNFT.getAddress(),
+        vthoToken: config.VTHO_TOKEN_ADDRESS,
+        vthoRewardPerBlock: config.VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL,
+        delegationPeriod: config.DELEGATION_PERIOD_DURATION,
+        operator: deployer.address,
+      },
+    ],
+    {}
+  )) as StargateDelegation;
+  console.log("StargateDelegation initialized");
+
+  console.log("Deploying NodeManagement...");
+  const nodeManagement = (await deployAndUpgrade(
+    ["NodeManagementV1", "NodeManagementV2", "NodeManagementV3"],
+    [
+      [
+        vechainNodesMockAddress || config.TOKEN_AUCTION_CONTRACT_ADDRESS,
+        deployer.address,
+        deployer.address,
+      ],
+      [],
+      [await stargateNFT.getAddress()],
+    ],
+    {
+      versions: [undefined, 2, 3],
+      logOutput: true,
+    }
+  )) as NodeManagementV2;
+  console.log("Done. Current version of NodeManagement", await nodeManagement.version());
+
+  console.log("Deployment completed successfully!");
+  console.log("================================================================================");
+
+  console.log("================ Seeding...");
+
+  // Update lead time
+  console.log("[1/2]: set leadtime and transfer cooldown to 0 on Legacy Token Auction...");
+  await vechainNodesMock.setLeadTime(0);
+  await vechainNodesMock.setTransferCooldown(0);
+
+  // Set Stargate NFT as operator of Legacy Token Auction
+  console.log("[2/2]: set Stargate NFT as operator of Legacy Token Auction...");
+  await vechainNodesMock.addOperator(await stargateNFT.getAddress());
+
+  console.log("Pause StarGate NFT...");
+  await stargateNFT.pause();
+  if (!(await stargateNFT.paused())) {
+    console.log("ERROR: Stargate NFT not paused");
+  }
+  console.log("Done");
+
+  console.log("TODO: Send VTHO to contracts");
+
+  const date = new Date(performance.now() - start);
+  console.log(
+    `================  Deployment script run successfully in ${date.getMinutes()}m ${date.getSeconds()}s `
+  );
+
+  const contractAddresses: DeployedContractsAddresses = {
+    // Below addresses are deployed if not mainnet, hence the default
+    TokenAuctionMock: vechainNodesMockAddress || config.TOKEN_AUCTION_CONTRACT_ADDRESS,
+    ClockAuctionMock: clockAuctionMockAddress || config.CLOCK_AUCTION_CONTRACT_ADDRESS,
+    ERC721Mock: erc721MockAddress || ethers.ZeroAddress,
+    ERC1155Mock: erc1155MockAddress || ethers.ZeroAddress,
+    NodeManagement: await nodeManagement.getAddress(),
+    // Below addresses are deployed on all networks
+    StargateNFT: await stargateNFT.getAddress(),
+    StargateDelegation: await stargateDelegation.getAddress(),
+  };
+  console.log("Contracts", contractAddresses);
+
+  const libraries = {
+    StargateNFTClockLib: await StargateNFTClockLib.getAddress(),
+    StargateNFTSettingsLib: await StargateNFTSettingsLib.getAddress(),
+    StargateNFTTokenLib: await StargateNFTTokenLib.getAddress(),
+    StargateNFTMintingLib: await StargateNFTMintingLib.getAddress(),
+    StargateNFTVetGeneratedVthoLib: await StargateNFTVetGeneratedVthoLib.getAddress(),
+    StargateNFTLevelsLib: await StargateNFTLevelsLib.getAddress(),
+  };
+  console.log("Libraries", libraries);
+
+  await saveContractsToFile(contractAddresses as unknown as Record<string, string>, libraries);
+  await overrideLocalConfigWithNewContracts(contractAddresses, getConfig().network, false);
+
+  const end = new Date(performance.now() - start);
+  console.log(`================ Total deployment time: ${end.getMinutes()}m ${end.getSeconds()}s`);
+
+  return contractAddresses;
+}

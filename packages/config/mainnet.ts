@@ -1,0 +1,16 @@
+import { defaultMainNetwork } from "@repo/constants";
+import { AppConfig } from ".";
+const config: AppConfig = {
+  environment: "mainnet",
+  basePath: "https://aafactory.org",
+  ipfsPinningService: "https://api.gateway-proxy.vechain.org/api/v1/pinning/pinFileToIPFS",
+  ipfsFetchingService: "https://api.gateway-proxy.vechain.org/ipfs",
+  legacyNodesContractAddress: "0xb81E9C5f9644Dec9e5e3Cac86b4461A222072302",
+  stargateNFTContractAddress: "0xC06Ad8573022e2BE416CA89DA47E8c592971679A",
+  nodeManagementContractAddress: "0xB0EF9D89C6b49CbA6BBF86Bf2FDf0Eee4968c6AB",
+  stargateDelegationContractAddress:
+    "0xC06Ad8573022e2BE416CA89DA47E8c592971679A",
+  nodeUrl: "https://mainnet.vechain.org",
+  network: defaultMainNetwork,
+};
+export default config;
