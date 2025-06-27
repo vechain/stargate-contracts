@@ -15,7 +15,7 @@
 
 Contracts are located in the `packages/contracts` folder.
 
-Docs: [https://docs.stargate.vechain.org/](https://docs.stargate.vechain.org/)
+Docs: [https://docs.stargate.vechain.org/](https://docs.stargate.vechain.org/for-developers/contracts)
 
 ## Stargate
 
