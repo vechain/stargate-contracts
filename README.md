@@ -29,6 +29,7 @@ This repo contains the StargateNFT, StargateDelegation and NodeManagementV3 cont
 ```
 "StargateNFT": "0x0000000000000000000000000000000000000000",
 "StargateDelegation": "0x0000000000000000000000000000000000000000",
+"TokenAuction (Legacy Nodes)": "0xb81E9C5f9644Dec9e5e3Cac86b4461A222072302",
 "NodeManagementV3": "0xB0EF9D89C6b49CbA6BBF86Bf2FDf0Eee4968c6AB",
 ```
 
