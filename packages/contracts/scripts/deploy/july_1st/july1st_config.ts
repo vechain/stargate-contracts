@@ -26,4 +26,10 @@ export const july1stConfig: Record<string, July1stScript> = {
     turboCommand: "july1st:roles-transfer",
     availableNetworks: ["testnet", "mainnet"],
   },
+  "Stargate NFT Upgrade": {
+    name: "stargate-nft-upgrade",
+    description: "Upgrade StargateNFT contract to fix the maturity period issue",
+    turboCommand: "july1st:stargate-nft-upgrade",
+    availableNetworks: ["testnet", "mainnet"],
+  },
 } as const;

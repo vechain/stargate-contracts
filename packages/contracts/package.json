@@ -23,6 +23,8 @@
     "july1st:node-management-upgrade:mainnet": "npx hardhat run scripts/deploy/july_1st/2.node_management_upgrade/index.ts --network vechain_mainnet",
     "july1st:roles-transfer:testnet": "npx hardhat run scripts/deploy/july_1st/4.roles_transfer/index.ts --network vechain_testnet",
     "july1st:roles-transfer:mainnet": "npx hardhat run scripts/deploy/july_1st/4.roles_transfer/index.ts --network vechain_mainnet",
+    "july1st:stargate-nft-upgrade:testnet": "npx hardhat run scripts/deploy/july_1st/5.upgrade-stargate-nft/index.ts --network vechain_testnet",
+    "july1st:stargate-nft-upgrade:mainnet": "npx hardhat run scripts/deploy/july_1st/5.upgrade-stargate-nft/index.ts --network vechain_mainnet",
     "check-contracts-deployment": "npx hardhat run scripts/checkContractsDeployment.ts --network vechain_solo",
     "check-contracts-deployment:testnet": "npx hardhat run scripts/checkContractsDeployment.ts --network vechain_testnet",
     "check-contracts-deployment:mainnet": "npx hardhat run scripts/checkContractsDeployment.ts --network vechain_mainnet",
@@ -35,8 +37,6 @@
     "lint": "eslint . --ext .ts",
     "format": "eslint . --ext .ts --fix",
     "generate-docs": "npx hardhat docgen",
-    "prepare-sourcify": "ts-node scripts/sourcify-prepare.ts",
-    "extract-metadata": "node scripts/extract-metadata-simple.js",
     "purge": "yarn clean",
     "verify:testnet": "npx hardhat verify --network vechain_testnet",
     "verify:mainnet": "npx hardhat verify --network vechain_mainnet"

@@ -353,10 +353,9 @@ describe("NodeManagementV3", function () {
 
       const levelId = config.TOKEN_LEVELS[0].level.id;
 
-      const { otherAccounts, stargateNFTContract, nodeManagementContract } =
-        await getOrDeployContracts({
-          forceDeploy: true,
-        });
+      const { stargateNFTContract, nodeManagementContract } = await getOrDeployContracts({
+        forceDeploy: true,
+      });
 
       const tokenId = (await stargateNFTContract.getCurrentTokenId()) + 1n;
 

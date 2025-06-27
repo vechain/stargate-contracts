@@ -36,9 +36,6 @@ export async function deployMainnetRelease(
   const [deployer] = await ethers.getSigners();
   console.log(`Address used to deploy: ${deployer.address}`);
   console.log(`Admin will be set to: ${config.CONTRACTS_ADMIN_ADDRESS}`);
-  console.log(
-    "/// TODO: Before mainnet we need to correctly setup deployer addresses and roles in the contracts"
-  );
 
   if (network.name !== "vechain_mainnet") {
     throw new Error(
@@ -89,10 +86,10 @@ export async function deployMainnetRelease(
         tokenCollectionName: config.TOKEN_COLLECTION_NAME,
         tokenCollectionSymbol: config.TOKEN_COLLECTION_SYMBOL,
         baseTokenURI: config.BASE_TOKEN_URI,
-        admin: deployer.address,
-        upgrader: deployer.address,
-        pauser: deployer.address,
-        levelOperator: deployer.address,
+        admin: config.CONTRACTS_ADMIN_ADDRESS,
+        upgrader: config.CONTRACTS_ADMIN_ADDRESS,
+        pauser: config.CONTRACTS_ADMIN_ADDRESS,
+        levelOperator: config.CONTRACTS_ADMIN_ADDRESS,
         legacyNodes: config.TOKEN_AUCTION_CONTRACT_ADDRESS,
         stargateDelegation: stargateDelegationProxyAddress,
         legacyLastTokenId: config.LEGACY_LAST_TOKEN_ID,

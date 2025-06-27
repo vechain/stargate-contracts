@@ -7,10 +7,8 @@ export function createLocalConfig() {
     VITE_APP_ENV: "local",
     CONTRACTS_ADMIN_ADDRESS: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", // hardhat default
     // Legacy contracts
-    TOKEN_AUCTION_CONTRACT_ADDRESS:
-      "0x0000000000000000000000000000000000000000",
-    CLOCK_AUCTION_CONTRACT_ADDRESS:
-      "0x0000000000000000000000000000000000000000",
+    TOKEN_AUCTION_CONTRACT_ADDRESS: "0x0000000000000000000000000000000000000000",
+    CLOCK_AUCTION_CONTRACT_ADDRESS: "0x0000000000000000000000000000000000000000",
     // Stargate delegation contract
     VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL: [
       {
@@ -57,16 +55,14 @@ export function createLocalConfig() {
     ],
     DELEGATION_PERIOD_DURATION: 10, // 10 blocks
     VTHO_TOKEN_ADDRESS: "0x0000000000000000000000000000456E65726779",
-    STARGATE_DELEGATION_OPERATOR_ADDRESS:
-      "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", // hardhat default
+    STARGATE_DELEGATION_OPERATOR_ADDRESS: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", // hardhat default
     // Stargate NFT contract
     TOKEN_COLLECTION_NAME: "StarGate Delegator Token",
     TOKEN_COLLECTION_SYMBOL: "SDT",
     TOKEN_LEVELS: initialTokenLevels,
-    LEGACY_LAST_TOKEN_ID: 7,
+    LEGACY_LAST_TOKEN_ID: 1000, // create an offset of 1000 tokens, so we can mint and migrate after the contracts are deployed
     BASE_TOKEN_URI: "ipfs://bafybeiarvgsibacpyvfnjfhyns4vmzy5p2dapzvcan6utoqca4w4k5a2xm/metadata/",
     // NodeManagement contract
-    NODE_MANAGEMENT_CONTRACT_ADDRESS:
-      "0x45d5CA3f295ad8BCa291cC4ecd33382DE40E4FAc",
+    NODE_MANAGEMENT_CONTRACT_ADDRESS: "0x45d5CA3f295ad8BCa291cC4ecd33382DE40E4FAc",
   });
 }

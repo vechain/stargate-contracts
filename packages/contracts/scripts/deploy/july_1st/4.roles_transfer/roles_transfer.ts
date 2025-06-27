@@ -53,7 +53,7 @@ export async function rolesTransfer() {
     console.log(`Roles to transfer:`);
     console.log(`- DEFAULT_ADMIN_ROLE -> ${newAdminAddress}`);
     console.log(`- UPGRADER_ROLE -> ${ethers.ZeroAddress}`);
-    console.log(`- PAUSER_ROLE -> ${ethers.ZeroAddress}`);
+    // console.log(`- PAUSER_ROLE -> ${ethers.ZeroAddress}`);
     console.log(`- LEVEL_OPERATOR_ROLE -> ${ethers.ZeroAddress}`);
     console.log(`- MANAGER_ROLE -> ${ethers.ZeroAddress}`);
     console.log(
@@ -148,7 +148,7 @@ export async function rolesTransfer() {
     );
     await Promise.all([
       stargateNFTContract.renounceRole(UPGRADER_ROLE, deployerAddress),
-      //   stargateNFTContract.renounceRole(PAUSER_ROLE, deployerAddress),
+      // stargateNFTContract.renounceRole(PAUSER_ROLE, deployerAddress),
       stargateNFTContract.renounceRole(LEVEL_OPERATOR_ROLE, deployerAddress),
       stargateNFTContract.renounceRole(MANAGER_ROLE, deployerAddress),
       stargateNFTContract.renounceRole(DEFAULT_ADMIN_ROLE, deployerAddress),
@@ -169,7 +169,7 @@ export async function rolesTransfer() {
     if (
       (await stargateNFTContract.hasRole(DEFAULT_ADMIN_ROLE, deployerAddress)) ||
       (await stargateNFTContract.hasRole(UPGRADER_ROLE, deployerAddress)) ||
-      (await stargateNFTContract.hasRole(PAUSER_ROLE, deployerAddress)) ||
+      // (await stargateNFTContract.hasRole(PAUSER_ROLE, deployerAddress)) ||
       (await stargateNFTContract.hasRole(LEVEL_OPERATOR_ROLE, deployerAddress)) ||
       (await stargateNFTContract.hasRole(MANAGER_ROLE, deployerAddress)) ||
       (await stargateDelegationContract.hasRole(DEFAULT_ADMIN_ROLE, deployerAddress)) ||

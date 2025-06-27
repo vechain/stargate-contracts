@@ -315,4 +315,138 @@ describe("StargateNFT migrating", () => {
       ).to.be.revertedWithCustomError(await getStargateNFTErrorsInterface(), "NotOwner");
     });
   });
+
+  describe("Maturity period validation", () => {
+    let config = createLocalConfig();
+    // Test data mapping level IDs to their expected maturity periods from local.ts
+    const expectedMaturityPeriods = [
+      { levelId: 1, name: "Strength", maturityBlocks: 10, isX: false },
+      { levelId: 2, name: "Thunder", maturityBlocks: 20, isX: false },
+      { levelId: 3, name: "Mjolnir", maturityBlocks: 30, isX: false },
+      { levelId: 4, name: "VeThorX", maturityBlocks: 0, isX: true },
+      { levelId: 5, name: "StrengthX", maturityBlocks: 0, isX: true },
+      { levelId: 6, name: "ThunderX", maturityBlocks: 0, isX: true },
+      { levelId: 7, name: "MjolnirX", maturityBlocks: 0, isX: true },
+      { levelId: 8, name: "Dawn", maturityBlocks: 5, isX: false },
+      { levelId: 9, name: "Lightning", maturityBlocks: 10, isX: false },
+      { levelId: 10, name: "Flash", maturityBlocks: 15, isX: false },
+    ];
+
+    before(async () => {
+      // Update the config with the expected maturity periods
+      for (const level of expectedMaturityPeriods) {
+        config.TOKEN_LEVELS[level.levelId - 1].level.maturityBlocks = level.maturityBlocks;
+      }
+    });
+
+    it("should not apply maturity periods to migrated nodes", async () => {
+      const { stargateNFTContract, legacyNodesContract, deployer } = await getOrDeployContracts({
+        forceDeploy: true,
+        config,
+      });
+
+      // Test migration for each legacy level (1-7)
+      const legacyLevels = expectedMaturityPeriods.slice(0, 7); // Only legacy levels can be migrated
+
+      for (let i = 0; i < legacyLevels.length; i++) {
+        const level = legacyLevels[i];
+        const user = deployer;
+
+        // Create legacy node for this level
+        await legacyNodesContract.addToken(user.address, level.levelId, false, 0, 0);
+        const legacyNodeId = await legacyNodesContract.ownerToId(user.address);
+
+        const tokenLevelSpec = await stargateNFTContract.getLevel(level.levelId);
+        const requiredVetAmount = tokenLevelSpec.vetAmountRequiredToStake;
+
+        // expect that maturity period is not applied even if the level has a maturity period
+        if (!level.isX) {
+          expect(level.maturityBlocks).to.be.greaterThan(0);
+        }
+
+        // Migrate the token
+        await stargateNFTContract.connect(user).migrate(legacyNodeId, { value: requiredVetAmount });
+
+        const token = await stargateNFTContract.getToken(legacyNodeId);
+        const migrationBlockNumber = token[2];
+        const migrationBlockClock = await stargateNFTContract.clock();
+        expect(migrationBlockClock).to.be.equal(migrationBlockNumber);
+
+        // Verify migrated token has no maturity period regardless of level config
+        const isTokenUnderMaturityPeriod = await stargateNFTContract.isUnderMaturityPeriod(
+          token.tokenId
+        );
+        expect(isTokenUnderMaturityPeriod).to.be.false;
+
+        const maturityPeriodEndBlock = await stargateNFTContract.maturityPeriodEndBlock(
+          token.tokenId
+        );
+        expect(maturityPeriodEndBlock).to.be.equal(migrationBlockNumber);
+      }
+    });
+
+    it("should apply correct maturity periods to newly minted tokens (non-X levels)", async () => {
+      const { stargateNFTContract, deployer } = await getOrDeployContracts({
+        forceDeploy: true,
+        config,
+      });
+
+      // Test only non-X levels that can be minted
+      const mintableLevels = expectedMaturityPeriods.filter((level) => !level.isX);
+
+      for (const level of mintableLevels) {
+        const tokenLevelSpec = await stargateNFTContract.getLevel(level.levelId);
+        expect(tokenLevelSpec.maturityBlocks).to.be.greaterThan(0);
+        const requiredVetAmount = tokenLevelSpec.vetAmountRequiredToStake;
+
+        // Stake VET to mint a new token
+        const mintTx = await stargateNFTContract
+          .connect(deployer)
+          .stake(level.levelId, { value: requiredVetAmount });
+        const receipt = await mintTx.wait();
+        if (!receipt) {
+          throw new Error("Mint transaction failed");
+        }
+
+        const mintBlockNumber = receipt.blockNumber;
+
+        // Get the minted token ID (assuming it's the next available ID)
+        const tokenId = await stargateNFTContract.getCurrentTokenId();
+
+        const token = await stargateNFTContract.getToken(tokenId);
+        expect(mintBlockNumber).to.equal(token.mintedAtBlock);
+
+        // Token should be under maturity period initially
+        const isTokenUnderMaturityPeriod = await stargateNFTContract.isUnderMaturityPeriod(tokenId);
+        expect(isTokenUnderMaturityPeriod).to.be.true;
+
+        // Maturity period end block should be mint block + maturity blocks
+        const maturityPeriodEndBlock = await stargateNFTContract.maturityPeriodEndBlock(tokenId);
+        const expectedEndBlock = mintBlockNumber + level.maturityBlocks;
+        expect(mintBlockNumber).to.be.lessThan(expectedEndBlock);
+        expect(maturityPeriodEndBlock).to.be.equal(expectedEndBlock);
+      }
+    });
+
+    it("should not be able to mint X tokens", async () => {
+      const { stargateNFTContract, deployer } = await getOrDeployContracts({
+        forceDeploy: true,
+        config,
+      });
+
+      for (const level of expectedMaturityPeriods) {
+        if (level.isX) {
+          const tokenLevelSpec = await stargateNFTContract.getLevel(level.levelId);
+          const requiredVetAmount = tokenLevelSpec[5];
+
+          await expect(
+            stargateNFTContract.connect(deployer).stake(level.levelId, { value: requiredVetAmount })
+          ).to.be.revertedWithCustomError(
+            await getStargateNFTErrorsInterface(stargateNFTContract),
+            "LevelCapReached"
+          );
+        }
+      }
+    });
+  });
 });

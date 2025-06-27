@@ -224,7 +224,7 @@ export async function deployAll(config: ContractsConfig): Promise<DeployedContra
     console.log("================ Seeding...");
 
     // Mint legacy NFTs
-    console.log("[1/3]: mint legacy NFTs...");
+    console.log("[1/4]: mint legacy NFTs...");
 
     await Promise.all([
       addToken(vechainNodesMock, otherAccounts[0].address, StrengthLevel.Strength, false), // Strength, not upgrading
@@ -247,12 +247,34 @@ export async function deployAll(config: ContractsConfig): Promise<DeployedContra
     }
 
     // Update lead time
-    console.log("[2/3]: set leadtime to 0 on Legacy Token Auction...");
+    console.log("[2/4]: set leadtime to 0 on Legacy Token Auction...");
     await vechainNodesMock.setLeadTime(0);
 
     // Set Stargate NFT as operator of Legacy Token Auction
-    console.log("[3/3]: set Stargate NFT as operator of Legacy Token Auction...");
+    console.log("[3/4]: set Stargate NFT as operator of Legacy Token Auction...");
     await vechainNodesMock.addOperator(await stargateNFT.getAddress());
+
+    console.log("[4/4]: Trying to deposit 1000 VTHO to Stargate Delegation...");
+    try {
+      const vthoToken = await ethers.getContractAt("MyERC20", vthoAddress);
+      if (network.name === "hardhat") {
+        await vthoToken.mint(
+          stargateDelegation.getAddress(),
+          ethers.parseUnits("1000000000000000000000")
+        );
+      } else if (network.name === "vechain_testnet" || network.name === "vechain_solo") {
+        await vthoToken.transferFrom(
+          deployer.address,
+          stargateDelegation.getAddress(),
+          ethers.parseUnits("1000000000000000000000")
+        );
+      }
+
+      console.log("VTHO deposited to Stargate Delegation");
+    } catch (error) {
+      console.error("Error depositing VTHO to Stargate Delegation:", error);
+      console.log("Continue with deployment...");
+    }
   }
 
   const date = new Date(performance.now() - start);
