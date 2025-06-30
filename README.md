@@ -31,7 +31,7 @@ This repo contains the StargateNFT, StargateDelegation and NodeManagementV3 cont
 ```
 "StargateNFT": "0x1856c533ac2d94340aaa8544d35a5c1d4a21dee7",
 "StargateDelegation": "0x4cb1c9ef05b529c093371264fab2c93cc6cddb0e",
-"TokenAuction (Legacy Nodes)": "0xb81E9C5f9644Dec9e5e3Cac86b4461A222072302",
+"VeChain Nodes (Legacy)": "0xb81E9C5f9644Dec9e5e3Cac86b4461A222072302",
 "NodeManagementV3": "0xB0EF9D89C6b49CbA6BBF86Bf2FDf0Eee4968c6AB",
 ```
 
@@ -40,7 +40,7 @@ This repo contains the StargateNFT, StargateDelegation and NodeManagementV3 cont
 ```
 "StargateNFT": "0x1ec1d168574603ec35b9d229843b7c2b44bcb770",
 "StargateDelegation": "0x7240e3bc0d26431512d5b67dbd26d199205bffe8",
-"TokenAuction (Legacy Nodes)": "0x0747b39abc0de3d11c8ddfe2e7eed00aaa8d475c",
+"VeChain Nodes (Legacy)": "0x0747b39abc0de3d11c8ddfe2e7eed00aaa8d475c",
 "NodeManagementV3": "0x8bcbfc20ee39c94f4e60afc5d78c402f70b4f3b2",
 ```
 
