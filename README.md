@@ -17,7 +17,7 @@ Contracts are located in the `packages/contracts` folder.
 
 Docs: [https://docs.stargate.vechain.org/](https://docs.stargate.vechain.org/for-developers/contracts)
 
-Audited by **Hacken** and can be found in the root of the repo (`Hacken_Vechain Foundation_[SCA] VeChain _ Stargate _ May 2025 _P-2025-1669_3_20250630 10_14.pdf`).
+Audit done by **Hacken** and is available in the root of the repo (`Hacken_Vechain Foundation_[SCA] VeChain _ Stargate _ May 2025 _P-2025-1669_3_20250630 10_14.pdf`).
 
 ## Stargate
 
