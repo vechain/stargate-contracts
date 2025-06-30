@@ -13,7 +13,7 @@
         *       .      ✦      *      .        ✶       *      ✦       .       *        ✶
 ```
 
-Contracts are located in the `packages/contracts` folder.
+Contracts are located in the `packages/contracts/contracts` folder.
 
 Docs: [https://docs.stargate.vechain.org/](https://docs.stargate.vechain.org/for-developers/contracts)
 
