@@ -17,6 +17,8 @@ Contracts are located in the `packages/contracts` folder.
 
 Docs: [https://docs.stargate.vechain.org/](https://docs.stargate.vechain.org/for-developers/contracts)
 
+Audit by **Hacken** and can be found in the root of the repo (`Hacken_Vechain Foundation_[SCA] VeChain _ Stargate _ May 2025 _P-2025-1669_3_20250630 10_14.pdf`).
+
 ## Stargate
 
 Stargate is VeChain’s new staking platform, designed to transform how users participate in the VeChainThor network. Users can stake VET tokens, and use those to delegate them to a validator node of the protocol.
