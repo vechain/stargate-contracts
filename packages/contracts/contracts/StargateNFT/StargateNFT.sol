@@ -438,25 +438,19 @@ contract StargateNFT is
     /// @param _levelId The ID of the token level spec to return
     /// @return Level - The token level spec
     function getLevel(uint8 _levelId) external view returns (DataTypes.Level memory) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return Levels.getLevel($, _levelId);
+        return Levels.getLevel(_getStargateNFTStorage(), _levelId);
     }
 
     /// @notice Returns a list of all token level specs
     /// @return levels - The list of token level specs
     function getLevels() external view returns (DataTypes.Level[] memory) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return Levels.getLevels($);
+        return Levels.getLevels(_getStargateNFTStorage());
     }
 
     /// @notice Returns the circulating supply for all levels
     /// @return circulatingSupplies An array of circulating supply values for all levels, sorted by level id
     function getLevelsCirculatingSupplies() external view returns (uint208[] memory) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return Levels.getLevelsCirculatingSupplies($);
+        return Levels.getLevelsCirculatingSupplies(_getStargateNFTStorage());
     }
 
     /// @notice Returns the circulating supply and cap for a given token level
@@ -464,9 +458,7 @@ contract StargateNFT is
     /// @return circulating The circulating supply of the token level
     /// @return cap The cap of the token level
     function getLevelSupply(uint8 _levelId) public view returns (uint208 circulating, uint32 cap) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        (circulating, cap) = Levels.getLevelSupply($, _levelId);
+        (circulating, cap) = Levels.getLevelSupply(_getStargateNFTStorage(), _levelId);
     }
 
     /// @notice Returns the circulating supply for a given level at a specific block
@@ -477,9 +469,7 @@ contract StargateNFT is
         uint8 _levelId,
         uint48 _blockNumber
     ) external view returns (uint208) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return Levels.getCirculatingSupplyAtBlock($, _levelId, _blockNumber);
+        return Levels.getCirculatingSupplyAtBlock(_getStargateNFTStorage(), _levelId, _blockNumber);
     }
 
     /// @notice Returns the circulating supply for all levels at a certain block
@@ -488,89 +478,70 @@ contract StargateNFT is
     function getLevelsCirculatingSuppliesAtBlock(
         uint48 _blockNumber
     ) external view returns (uint208[] memory) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return Levels.getLevelsCirculatingSuppliesAtBlock($, _blockNumber);
+        return Levels.getLevelsCirculatingSuppliesAtBlock(_getStargateNFTStorage(), _blockNumber);
     }
 
     /// @notice Returns the cap for a given token level
     /// @param _levelId The ID of the token level to get the cap for
     /// @return cap The cap of the token level
     function getCap(uint8 _levelId) external view returns (uint32) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-        return $.cap[_levelId];
+        return _getStargateNFTStorage().cap[_levelId];
     }
 
     /// @notice Get the latest token id that was minted
     /// @dev Ids start from the total supply of the legacy contrat
     /// @return currentTokenId the latest token id that was minted
     function getCurrentTokenId() external view returns (uint256) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return $.currentTokenId;
+        return _getStargateNFTStorage().currentTokenId;
     }
 
     /// @notice Returns a token for a given token ID
     /// @param _tokenId The ID of the token to get
     /// @return token The token
     function getToken(uint256 _tokenId) public view returns (DataTypes.Token memory) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return Token.getToken($, _tokenId);
+        return Token.getToken(_getStargateNFTStorage(), _tokenId);
     }
 
     /// @notice Returns the level ID of a given token
     /// @param _tokenId - the token ID of the NFT
     /// @return levelId - the level ID of the NFT
     function getTokenLevel(uint256 _tokenId) external view returns (uint8) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return $.tokens[_tokenId].levelId;
+        return _getStargateNFTStorage().tokens[_tokenId].levelId;
     }
 
     /// @notice Returns the tokens owned by an address
     /// @param _owner The address to get tokens for
     /// @return tokens An array of tokens owned by the address
     function tokensOwnedBy(address _owner) external view returns (DataTypes.Token[] memory) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return Token.tokensOwnedBy($, _owner);
+        return Token.tokensOwnedBy(_getStargateNFTStorage(), _owner);
     }
 
     /// @notice Returns the levels owned by an address
     /// @param _owner The address to get levels for
     /// @return levels An array of levels owned by the address
     function levelsOwnedBy(address _owner) external view returns (uint8[] memory) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return Token.levelsOwnedBy($, _owner);
+        return Token.levelsOwnedBy(_getStargateNFTStorage(), _owner);
     }
 
     /// @notice Returns the total VET staked by an address
     /// @param _owner The address to get total VET staked for
     /// @return totalVetStaked The total VET staked by the address
     function ownerTotalVetStaked(address _owner) external view returns (uint256) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return Token.ownerTotalVetStaked($, _owner);
+        return Token.ownerTotalVetStaked(_getStargateNFTStorage(), _owner);
     }
 
     /// @notice Returns the maturity period end block for a given token
     /// @param _tokenId The ID of the token to get maturity period end block for
     /// @return maturityPeriodEndBlock The maturity period end block
     function maturityPeriodEndBlock(uint256 _tokenId) external view returns (uint64) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return Token.maturityPeriodEndBlock($, _tokenId);
+        return Token.maturityPeriodEndBlock(_getStargateNFTStorage(), _tokenId);
     }
 
     /// @notice Returns true if a token is in the maturity period
     /// @param _tokenId The ID of the token to check
     /// @return isInMaturityPeriod True if the token is in the maturity period, false otherwise
     function isUnderMaturityPeriod(uint256 _tokenId) external view returns (bool) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return Token.isUnderMaturityPeriod($, _tokenId);
+        return Token.isUnderMaturityPeriod(_getStargateNFTStorage(), _tokenId);
     }
 
     /// @notice Returns true if the NFT is transferable, false otherwise
@@ -578,9 +549,7 @@ contract StargateNFT is
     /// @param _tokenId - the token ID of the NFT
     /// @return true if the NFT is transferable, false otherwise
     function canTransfer(uint256 _tokenId) public view returns (bool) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return !$.stargateDelegation.isDelegationActive(_tokenId);
+        return !_getStargateNFTStorage().stargateDelegation.isDelegationActive(_tokenId);
     }
 
     /// @notice Returns the base URI for the token collection metadata
@@ -595,9 +564,7 @@ contract StargateNFT is
     /// @param _tokenId - the token ID to calculate rewards for
     /// @return amount - the amount of VTHO rewards available
     function claimableVetGeneratedVtho(uint256 _tokenId) external view returns (uint256) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return VetGeneratedVtho.claimableRewards($, _tokenId);
+        return VetGeneratedVtho.claimableRewards(_getStargateNFTStorage(), _tokenId);
     }
 
     /// @notice Returns the timestamp of the last base VTHO reward claim
@@ -606,9 +573,7 @@ contract StargateNFT is
     function getLastVetGeneratedVthoClaimTimestamp(
         uint256 _tokenId
     ) external view returns (uint48) {
-        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
-
-        return $.tokens[_tokenId].lastVthoClaimTimestamp;
+        return _getStargateNFTStorage().tokens[_tokenId].lastVthoClaimTimestamp;
     }
 
     /// @notice This function calculates the VTHO generated between two timestamps for
