@@ -1,0 +1,53 @@
+# This workflow is triggered when a release is published that contains the tag contracts-artifacts is created:
+# It will check that the version in the package.json matches the tag on the release
+# If version matches it will build and release on npm a package containing the contracts artifacts
+name: Contracts Artifacts Release
+permissions:
+  contents: read
+  packages: write
+env:
+  # Increase Node.js memory to prevent build failures
+  NODE_OPTIONS: "--max-old-space-size=4096"
+on:
+  release:
+    types: [published]
+jobs:
+  release-npm-package:
+    # if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "yarn"
+
+      - name: Get version in package.json
+        id: package-version
+        uses: notiz-dev/github-action-json-property@release
+        with:
+          path: "packages/contracts-artifacts/package.json"
+          prop_path: "version"
+
+      - name: Ensure the package.json version matches the tag version
+        if: ${{ steps.package-version.outputs.prop != github.ref_name }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.setFailed('The version in the package must match the tag.')
+
+      - name: install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build Project Artifacts
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+        run: yarn artifacts:build
+
+      - name: Publish to NPM
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          yarn npm publish --access public
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
