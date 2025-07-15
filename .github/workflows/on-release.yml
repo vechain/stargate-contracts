@@ -50,7 +50,7 @@ jobs:
         run: |
           cd packages/contracts-artifacts
           # Ensure the NPM token is set in .npmrc
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NODE_AUTH_TOKEN }}" >> ~/.npmrc
+          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
           echo "registry=https://registry.npmjs.org/" > ~/.npmrc
           echo "always-auth=true" >> ~/.npmrc
           yarn publish --access public
