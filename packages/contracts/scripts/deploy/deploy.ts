@@ -39,12 +39,6 @@ export async function deployAll(config: ContractsConfig): Promise<DeployedContra
     "/// TODO: Before mainnet we need to correctly setup deployer addresses and roles in the contracts"
   );
 
-  if (network.name === "vechain_rewards") {
-    throw new Error(
-      "This script is not meant to be used on rewards network, please use deployRewardsSolo.ts"
-    );
-  }
-
   // ---------------------- Deploy Mocks if not mainnet ----------------------
   let vechainNodesMockAddress, clockAuctionMockAddress, erc721MockAddress, erc1155MockAddress;
 

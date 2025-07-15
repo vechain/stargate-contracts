@@ -1,0 +1,35 @@
+{
+  "name": "@vechain/stargate-contracts-artifacts",
+  "version": "0.0.1",
+  "exports": {
+    ".": {
+      "import": "./dist-esm/index.js",
+      "require": "./dist-cjs/index.js"
+    },
+    "./package.json": "./package.json",
+    "./artifacts/*": "./artifacts/*",
+    "./typechain-types/*": "./typechain-types/*"
+  },
+  "main": "./dist-cjs/index.js",
+  "module": "./dist-esm/index.js",
+  "types": "./dist-esm/index.d.ts",
+  "private": true,
+  "type": "commonjs",
+  "files": [
+    "dist-cjs",
+    "dist-esm",
+    "artifacts"
+  ],
+  "scripts": {
+    "build": "yarn run copy && yarn run build:cjs && yarn run build:esm",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "copy": "yarn run copy:artifacts && yarn run copy:typechain",
+    "copy:artifacts": "cp -r ../contracts/artifacts artifacts",
+    "copy:typechain": "cp -r ../contracts/typechain-types typechain-types",
+    "clean": "rm -rf artifacts typechain-types dist-cjs dist-esm"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,18 +1,12 @@
 import { ethers, network } from "hardhat";
 import { deployAll } from "./deploy/deploy";
 import { getConfig, getContractsConfig } from "@repo/config";
-import { AppConfig } from "@repo/config";
-import fs from "fs";
-import path from "path";
-import { Network } from "@repo/constants";
-import { deployRewardsSolo } from "./deploy/rewards_solo/deployRewardsSolo";
 import { overrideLocalConfigWithNewContracts } from "./overrideConfigFile";
 
 const config = getConfig();
 
 const isSoloNetwork = network.name === "vechain_solo";
 const isTestnetNetwork = network.name === "vechain_testnet";
-const isRewardsNetwork = network.name === "vechain_rewards";
 
 async function main() {
   console.log(`Checking contracts deployment on ${network.name} (${config.network.urls[0]})...`);
@@ -34,12 +28,7 @@ async function checkContractsDeployment() {
         // deploy the contracts and override the config file
         const newAddresses = await deployAll(getContractsConfig(config.environment));
 
-        return await overrideLocalConfigWithNewContracts(newAddresses, config.network, false);
-      } else if (isRewardsNetwork) {
-        // deploy the contracts and override the config file
-        const newAddresses = await deployRewardsSolo(getContractsConfig(config.environment));
-
-        return await overrideLocalConfigWithNewContracts(newAddresses, config.network, true);
+        return await overrideLocalConfigWithNewContracts(newAddresses, config.network);
       } else console.log(`Skipping deployment on ${network.name}. Not solo or testnet.`);
     } else console.log(`StargateNFT contract already deployed, skipping deployment...`);
   } catch (e) {
