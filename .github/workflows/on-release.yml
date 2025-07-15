@@ -11,7 +11,7 @@ env:
 on:
   push:
     branches:
-      - jose/ci-debug
+      - jose/debug-ci
 jobs:
   release-npm-package:
     # if: github.event.pull_request.merged == true
