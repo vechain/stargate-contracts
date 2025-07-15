@@ -46,6 +46,8 @@ jobs:
         run: yarn artifacts:build
 
       - name: Publish to NPM
-        run: yarn npm publish --access public
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          yarn publish --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
