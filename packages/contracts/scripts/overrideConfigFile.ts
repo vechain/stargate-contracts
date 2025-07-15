@@ -8,8 +8,7 @@ const config = getConfig();
 
 export const overrideLocalConfigWithNewContracts = async (
   contracts: Awaited<ReturnType<typeof deployAll>>,
-  network: Network,
-  isRewardsNetwork: boolean
+  network: Network
 ) => {
   const newConfig: AppConfig = {
     ...config,
@@ -29,9 +28,8 @@ export const overrideLocalConfigWithNewContracts = async (
     solo: "local.ts",
     test: "testnet.ts",
     main: "mainnet.ts",
-    rewards: "rewards.ts",
   };
-  const fileToWrite = isRewardsNetwork ? configFiles["rewards"] : configFiles[network.name];
+  const fileToWrite = configFiles[network.name];
   const localConfigPath = path.resolve(`../config/${fileToWrite}`);
   console.log(`Writing new config file to ${localConfigPath}`);
   fs.writeFileSync(localConfigPath, toWrite);

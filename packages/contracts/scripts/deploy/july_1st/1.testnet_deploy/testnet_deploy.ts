@@ -240,7 +240,7 @@ export async function deployTestnetRelease(
   console.log("Libraries", libraries);
 
   await saveContractsToFile(contractAddresses as unknown as Record<string, string>, libraries);
-  await overrideLocalConfigWithNewContracts(contractAddresses, getConfig().network, false);
+  await overrideLocalConfigWithNewContracts(contractAddresses, getConfig().network);
 
   const end = new Date(performance.now() - start);
   console.log(`================ Total deployment time: ${end.getMinutes()}m ${end.getSeconds()}s`);

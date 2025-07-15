@@ -84,15 +84,6 @@ const config: HardhatUserConfig = {
       },
       gas: 10000000,
     },
-    vechain_rewards: {
-      url: "https://thor-solo.dev.rewards.vechain.org",
-      accounts: {
-        mnemonic: getEnvMnemonic(),
-        count: 20,
-        path: VECHAIN_DERIVATION_PATH,
-      },
-      gas: 10000000,
-    },
     vechain_testnet: {
       url: "https://testnet.vechain.org",
       chainId: 100010,
