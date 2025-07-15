@@ -26,15 +26,6 @@
       ],
       "outputs": [".next/**", "!.next/cache/**"]
     },
-    "build:rewards": {
-      "cache": false,
-      "dependsOn": [
-        "@repo/contracts#compile",
-        "^compile",
-        "@repo/config#check-or-generate-local-config"
-      ],
-      "outputs": [".next/**", "!.next/cache/**"]
-    },
     "lint": {
       "dependsOn": ["^lint"]
     },
@@ -53,35 +44,17 @@
       "persistent": true,
       "dependsOn": ["@repo/contracts#check-contracts-deployment:mainnet"]
     },
-    "dev:rewards": {
-      "cache": false,
-      "persistent": true,
-      "dependsOn": ["@repo/contracts#check-contracts-deployment:rewards"]
-    },
     "check-contracts-deployment": {
       "cache": false,
       "dependsOn": ["@repo/contracts#check-contracts-deployment"]
     },
     "check-contracts-deployment:testnet": {
       "cache": false,
-      "dependsOn": [
-        "^compile",
-        "@repo/contracts#check-contracts-deployment:testnet"
-      ]
+      "dependsOn": ["^compile", "@repo/contracts#check-contracts-deployment:testnet"]
     },
     "check-contracts-deployment:mainnet": {
       "cache": false,
-      "dependsOn": [
-        "^compile",
-        "@repo/contracts#check-contracts-deployment:mainnet"
-      ]
-    },
-    "check-contracts-deployment:rewards": {
-      "cache": false,
-      "dependsOn": [
-        "^compile",
-        "@repo/contracts#check-contracts-deployment:rewards"
-      ]
+      "dependsOn": ["^compile", "@repo/contracts#check-contracts-deployment:mainnet"]
     },
     "@repo/config#check-or-generate-local-config": {
       "cache": false
@@ -98,9 +71,9 @@
       "cache": false,
       "dependsOn": ["^compile", "@repo/config#check-or-generate-local-config"]
     },
-    "@repo/contracts#check-contracts-deployment:rewards": {
+    "@repo/artifacts#build": {
       "cache": false,
-      "dependsOn": ["^compile", "@repo/config#check-or-generate-local-config"]
+      "dependsOn": ["@repo/contracts#compile", "^compile"]
     },
     "clean": {
       "cache": false
@@ -122,9 +95,6 @@
       "dependsOn": ["@repo/config#check-or-generate-local-config"]
     },
     "deploy:mainnet": {
-      "dependsOn": ["@repo/config#check-or-generate-local-config"]
-    },
-    "deploy:rewards": {
       "dependsOn": ["@repo/config#check-or-generate-local-config"]
     },
     "test": {
