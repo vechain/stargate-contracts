@@ -9,9 +9,8 @@ env:
   # Increase Node.js memory to prevent build failures
   NODE_OPTIONS: "--max-old-space-size=4096"
 on:
-  push:
-    branches:
-      - jose/debug-ci
+  release:
+  types: [published]
 jobs:
   release-npm-package:
     # if: github.event.pull_request.merged == true
@@ -31,12 +30,12 @@ jobs:
           path: "packages/contracts-artifacts/package.json"
           prop_path: "version"
 
-      # - name: Ensure the package.json version matches the tag version
-      #   if: ${{ steps.package-version.outputs.prop != github.ref_name }}
-      #   uses: actions/github-script@v6
-      #   with:
-      #     script: |
-      #       core.setFailed('The version in the package must match the tag.')
+      - name: Ensure the package.json version matches the tag version
+        if: ${{ steps.package-version.outputs.prop != github.ref_name }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.setFailed('The version in the package must match the tag.')
 
       - name: install dependencies
         run: yarn install --frozen-lockfile
