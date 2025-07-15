@@ -10,7 +10,7 @@ env:
   NODE_OPTIONS: "--max-old-space-size=4096"
 on:
   release:
-  types: [published]
+    types: [published]
 jobs:
   release-npm-package:
     # if: github.event.pull_request.merged == true
