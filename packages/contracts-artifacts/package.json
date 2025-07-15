@@ -1,6 +1,6 @@
 {
   "name": "@vechain/stargate-contracts-artifacts",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "exports": {
     ".": {
       "import": "./dist-esm/index.js",
