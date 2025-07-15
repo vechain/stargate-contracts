@@ -10,7 +10,7 @@ env:
   NODE_OPTIONS: "--max-old-space-size=4096"
 on:
   release:
-    types: [published]
+  types: [published]
 jobs:
   release-npm-package:
     # if: github.event.pull_request.merged == true
@@ -47,7 +47,11 @@ jobs:
 
       - name: Publish to NPM
         run: |
-          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
-          yarn artifacts:publish
+          cd packages/contracts-artifacts
+          # Write .npmrc in the current directory
+          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > .npmrc
+          echo "registry=https://registry.npmjs.org/" >> .npmrc
+          echo "always-auth=true" >> .npmrc
+          yarn publish --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
