@@ -2,6 +2,9 @@
 # It will check that the version in the package.json matches the tag on the release
 # If version matches it will build and release on npm a package containing the contracts artifacts
 name: Contracts Artifacts Release
+permissions:
+  contents: read
+  packages: write
 env:
   # Increase Node.js memory to prevent build failures
   NODE_OPTIONS: "--max-old-space-size=4096"
