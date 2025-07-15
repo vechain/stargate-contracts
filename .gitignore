@@ -59,6 +59,11 @@ packages/contracts/scripts/data_exports/data
 packages/contracts/typechain-types/
 packages/contracts/metadata/stargateNFT/metadata.zip
 
+packages/contracts-artifacts/artifacts/
+packages/contracts-artifacts/dist-cjs/
+packages/contracts-artifacts/dist-esm/
+packages/contracts-artifacts/typechain-types/
+
 
 packages/contracts/.openzeppelin/unknown-246.json
 packages/contracts/sourcify-verification*

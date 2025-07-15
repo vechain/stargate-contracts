@@ -48,6 +48,6 @@ jobs:
       - name: Publish to NPM
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-          yarn publish --access public
+          yarn artifacts:publish
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
