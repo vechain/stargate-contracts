@@ -71,7 +71,7 @@
       "cache": false,
       "dependsOn": ["^compile", "@repo/config#check-or-generate-local-config"]
     },
-    "@repo/artifacts#build": {
+    "@vechain/stargate-contracts-artifacts#build": {
       "cache": false,
       "dependsOn": ["@repo/contracts#compile", "^compile"]
     },
