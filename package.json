@@ -22,7 +22,6 @@
     "check-contracts-deployment": "dotenv -v VITE_APP_ENV=local turbo check-contracts-deployment --filter=contracts",
     "check-contracts-deployment:testnet": "dotenv -v VITE_APP_ENV=testnet turbo check-contracts-deployment:testnet --filter=contracts",
     "artifacts:build": "turbo build --filter=@vechain/stargate-contracts-artifacts",
-    "artifacts:publish": "yarn workspace @vechain/stargate-contracts-artifacts publish --access public",
     "solo-up": "make solo-up",
     "solo-down": "make solo-down",
     "solo-clean": "make solo-clean",

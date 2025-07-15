@@ -9,8 +9,9 @@ env:
   # Increase Node.js memory to prevent build failures
   NODE_OPTIONS: "--max-old-space-size=4096"
 on:
-  release:
-    types: [published]
+  commit:
+    branches:
+      - jose/debug-ci
 jobs:
   release-npm-package:
     # if: github.event.pull_request.merged == true
@@ -30,12 +31,12 @@ jobs:
           path: "packages/contracts-artifacts/package.json"
           prop_path: "version"
 
-      - name: Ensure the package.json version matches the tag version
-        if: ${{ steps.package-version.outputs.prop != github.ref_name }}
-        uses: actions/github-script@v6
-        with:
-          script: |
-            core.setFailed('The version in the package must match the tag.')
+      # - name: Ensure the package.json version matches the tag version
+      #   if: ${{ steps.package-version.outputs.prop != github.ref_name }}
+      #   uses: actions/github-script@v6
+      #   with:
+      #     script: |
+      #       core.setFailed('The version in the package must match the tag.')
 
       - name: install dependencies
         run: yarn install --frozen-lockfile
@@ -47,7 +48,9 @@ jobs:
 
       - name: Publish to NPM
         run: |
-          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
-          yarn artifacts:publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          cd packages/contracts-artifacts
+          # Ensure the NPM token is set in .npmrc
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> ~/.npmrc
+          echo "registry=https://registry.npmjs.org/" > ~/.npmrc
+          echo "always-auth=true" >> ~/.npmrc
+          yarn publish --access public
