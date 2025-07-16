@@ -38,6 +38,17 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 /// The rewards are accumulated in the contract and can be claimed by the user at any time.
 ///
 /// The contract is UUPS upgradable and AccessControl protected.
+///
+/// ===================== VERSION 2 ===================== //
+/// Storage changes: none.
+/// Changes:
+/// - Solved a bug in the _claimRewards function, where the rewardsAccumulationStartBlock was not updated correctly
+/// by setting it to the current block, instead of the last block of the last completed delegation period.
+/// This bug was causing a reset of the delegation period and causing users to lose rewards accumulated between
+/// the last completed delegation period and the claim time.
+/// - Removed the extra block on top of currentDelegationPeriodEndBlock when requesting delegation exit
+/// - Added an external function to return the last completed delegation period end block for a given NFT
+///   (calculateLastCompletedPeriodEndBlock)
 contract StargateDelegation is
     AccessControlUpgradeable,
     ReentrancyGuardUpgradeable,
@@ -86,7 +97,7 @@ contract StargateDelegation is
     /// @notice Returns the version of the contract, manually updated with each upgrade
     /// @return version - the version of the contract
     function version() public pure returns (uint256) {
-        return 1;
+        return 2;
     }
 
     struct StargateDelegationInitParams {
@@ -274,7 +285,7 @@ contract StargateDelegation is
         }
 
         // Set the delegationEndBlock to the block after the end of the current delegationPeriod
-        $.delegationEndBlock[_tokenId] = currentDelegationPeriodEndBlock(_tokenId) + 1;
+        $.delegationEndBlock[_tokenId] = currentDelegationPeriodEndBlock(_tokenId);
         emit DelegationExitRequested(_tokenId, $.delegationEndBlock[_tokenId]);
     }
 
@@ -305,8 +316,11 @@ contract StargateDelegation is
             );
         }
 
-        // Update start block for rewards accumulation
-        $.rewardsAccumulationStartBlock[_tokenId] = clock();
+        // Update start block for rewards accumulation to the last completed delegation period
+        $.rewardsAccumulationStartBlock[_tokenId] = _calculateLastCompletedPeriodEndBlock(
+            $,
+            _tokenId
+        );
 
         // Send the rewards to the owner of the NFT and revert if it fails
         address recipient = $.stargateNFT.ownerOf(_tokenId);
@@ -477,6 +491,11 @@ contract StargateDelegation is
 
         StargateDelegationStorage storage $ = _getStargateDelegationStorage();
 
+        // If the owner already requested to exit delegation, return the delegation end block
+        if ($.delegationEndBlock[_tokenId] != type(uint256).max) {
+            return $.delegationEndBlock[_tokenId];
+        }
+
         // If the NFT is still under the maturity period, return the maturity period end block + delegationPeriod
         if ($.stargateNFT.isUnderMaturityPeriod(_tokenId)) {
             return $.stargateNFT.maturityPeriodEndBlock(_tokenId) + $.delegationPeriod;
@@ -512,38 +531,12 @@ contract StargateDelegation is
     function claimableRewards(uint256 _tokenId) public view returns (uint256) {
         StargateDelegationStorage storage $ = _getStargateDelegationStorage();
 
-        uint256 currentBlock = clock();
-
         // If current block is before delegation start (because of the maturity period), there are no rewards
-        if (currentBlock < $.rewardsAccumulationStartBlock[_tokenId]) {
+        if (clock() < $.rewardsAccumulationStartBlock[_tokenId]) {
             return 0;
         }
 
-        // Calculate the last completed delegationPeriod block
-        uint256 blocksSinceAccumulationStart = currentBlock -
-            $.rewardsAccumulationStartBlock[_tokenId];
-        uint256 completedDelegationPeriods = blocksSinceAccumulationStart / $.delegationPeriod;
-
-        // If no delegationPeriods completed yet, return 0
-        if (completedDelegationPeriods == 0) {
-            return 0;
-        }
-
-        // slither-disable-next-line divide-before-multiply -- Intentional truncation to find last completed period boundary
-        uint256 lastCompletedDelegationPeriodBlock = $.rewardsAccumulationStartBlock[_tokenId] +
-            (completedDelegationPeriods * $.delegationPeriod);
-
-        // Determine the end block for reward calculation
-        uint256 endBlock = isDelegationActive(_tokenId)
-            ? lastCompletedDelegationPeriodBlock
-            : $.delegationEndBlock[_tokenId];
-
-        // If we reached the block when the contract stops allowing rewards accumulation,
-        // we use the rewards accumulation end block as the end block for reward calculation
-        uint256 rewardsAccumulationEndBlock = $.rewardsAccumulationEndBlock;
-        if (endBlock > rewardsAccumulationEndBlock && rewardsAccumulationEndBlock != 0) {
-            endBlock = rewardsAccumulationEndBlock;
-        }
+        uint256 endBlock = _calculateLastCompletedPeriodEndBlock($, _tokenId);
 
         return _calculateRewards($, _tokenId, endBlock);
     }
@@ -569,6 +562,47 @@ contract StargateDelegation is
         }
 
         return _calculateRewards($, _tokenId, endBlock);
+    }
+
+    /// @notice Function to calculate the last completed delegation period end block for a given NFT
+    /// @param _tokenId - the tokenId of the NFT
+    /// @return endBlock - the last completed delegation period end block
+    function calculateLastCompletedPeriodEndBlock(
+        uint256 _tokenId
+    ) external view returns (uint256 endBlock) {
+        return _calculateLastCompletedPeriodEndBlock(_getStargateDelegationStorage(), _tokenId);
+    }
+
+    /// @notice Internal function to calculate the block to consider as the end block for claimable rewards
+    /// This function is used to calculate the end block for claimable rewards, which is the last completed
+    /// delegationPeriod block for the NFT.
+    /// @param _tokenId - the tokenId of the NFT
+    /// @return endBlock - the end block for claimable rewards
+    function _calculateLastCompletedPeriodEndBlock(
+        StargateDelegationStorage storage $,
+        uint256 _tokenId
+    ) internal view returns (uint256 endBlock) {
+        if (!isDelegationActive(_tokenId)) {
+            // If the NFT already exited delegation, then the last completed delegation period end block
+            // is the delegation end block
+            endBlock = $.delegationEndBlock[_tokenId];
+        } else {
+            // Otherwise, we calculate the amount of completed delegation periods until current block
+            uint256 blocksSinceAccumulationStart = clock() -
+                $.rewardsAccumulationStartBlock[_tokenId];
+            uint256 completedDelegationPeriods = blocksSinceAccumulationStart / $.delegationPeriod;
+
+            endBlock =
+                $.rewardsAccumulationStartBlock[_tokenId] +
+                (completedDelegationPeriods * $.delegationPeriod);
+        }
+
+        // If we reached the block when the contract stops allowing rewards accumulation,
+        // we use the rewards accumulation end block as the end block for reward calculation
+        uint256 rewardsAccumulationEndBlock = $.rewardsAccumulationEndBlock;
+        if (endBlock > rewardsAccumulationEndBlock && rewardsAccumulationEndBlock != 0) {
+            endBlock = rewardsAccumulationEndBlock;
+        }
     }
 
     /// @notice Internal function to calculate the rewards for a given NFT and a given end block
@@ -599,10 +633,6 @@ contract StargateDelegation is
         // Calculate the rewards based on the blocks that passed since the last claim
         uint256 rewardRate = $.vthoRewardPerBlock[levelId];
         uint256 blocksPassed = _endBlock - lastClaimBlock;
-
-        if (rewardRate == 0 || blocksPassed == 0) {
-            return 0;
-        }
 
         return rewardRate * blocksPassed;
     }

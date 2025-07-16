@@ -30,7 +30,7 @@ describe("StargateDelegation deployment", () => {
     const { stargateDelegationContract, stargateNFTContract, deployer, mockedVthoToken } =
       await getOrDeployContracts({ config, forceDeploy: true });
 
-    expect(await stargateDelegationContract.version()).to.equal(1);
+    expect(await stargateDelegationContract.version()).to.equal(2);
 
     // Roles are set correctly
     expect(

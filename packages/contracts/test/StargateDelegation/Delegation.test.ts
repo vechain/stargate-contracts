@@ -662,6 +662,9 @@ describe("StargateDelegation delegation", () => {
       const periodEndBlockAfterExit =
         await stargateDelegation.currentDelegationPeriodEndBlock(tokenId2);
       expect(periodEndBlockAfterExit).to.equal(periodEndBlockBeforeExit);
+
+      const delegationEndBlock = await stargateDelegation.getDelegationEndBlock(tokenId2);
+      expect(delegationEndBlock).to.equal(periodEndBlockAfterExit);
     });
 
     it("should still be possible to call accumulatedRewards after delegation exit", async () => {
@@ -717,6 +720,105 @@ describe("StargateDelegation delegation", () => {
       expect(delegationDetails[3]).to.not.equal(
         BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
       );
+    });
+
+    it("Exit block number should be set correctly when requesting delegation exit", async () => {
+      // Delegate the NFT
+      await stargateDelegation.delegate(tokenId1, true);
+
+      const delegationStartBlock = await stargateDelegation.clock();
+      const rewardsAccumulationStartBlock =
+        await stargateDelegation.getRewardsAccumulationStartBlock(tokenId1);
+      expect(rewardsAccumulationStartBlock).to.equal(delegationStartBlock);
+
+      // auto renew is enabled, so the exit block should be infinity
+      expect(await stargateDelegation.getDelegationEndBlock(tokenId1)).to.equal(
+        BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+      );
+
+      // get the current delegation period end block
+      const currentDelegationPeriodEndBlock =
+        await stargateDelegation.currentDelegationPeriodEndBlock(tokenId1);
+      expect(currentDelegationPeriodEndBlock).to.equal(
+        delegationStartBlock + BigInt(config.DELEGATION_PERIOD_DURATION)
+      );
+
+      // Request delegation exit
+      await stargateDelegation.requestDelegationExit(tokenId1);
+
+      // the exit block should be the current delegation period end block
+      const exitBlock = await stargateDelegation.getDelegationEndBlock(tokenId1);
+      expect(exitBlock).to.equal(currentDelegationPeriodEndBlock);
+
+      // fast forward to the exit block
+      let currentBlock = await stargateDelegation.clock();
+      await mineBlocks(Number(exitBlock - currentBlock));
+      currentBlock = await stargateDelegation.clock();
+      expect(currentBlock).to.equal(exitBlock);
+
+      // Verify the NFT is not delegated anymore
+      expect(await stargateDelegation.isDelegationActive(tokenId1)).to.be.false;
+
+      // Check that the user can claim the rewards correctly
+      let accumulatedRewards = await stargateDelegation.accumulatedRewards(tokenId1);
+      expect(accumulatedRewards).to.equal(
+        config.VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL[0].rewardPerBlock *
+          BigInt(config.DELEGATION_PERIOD_DURATION)
+      );
+
+      let claimableRewards = await stargateDelegation.claimableRewards(tokenId1);
+      expect(claimableRewards).to.equal(accumulatedRewards);
+
+      // Claim the rewards
+      await stargateDelegation.claimRewards(tokenId1);
+
+      // Verify the rewards accumulation start block is set to the next block after the exit block
+      let rewardsAccumulationStartBlockAfterClaim =
+        await stargateDelegation.getRewardsAccumulationStartBlock(tokenId1);
+      expect(rewardsAccumulationStartBlockAfterClaim).to.equal(exitBlock);
+
+      accumulatedRewards = await stargateDelegation.accumulatedRewards(tokenId1);
+      expect(accumulatedRewards).to.equal(0);
+
+      claimableRewards = await stargateDelegation.claimableRewards(tokenId1);
+      expect(claimableRewards).to.equal(0);
+
+      // Verify that if user delegates again, there are no issues in rewards accumulation
+      await stargateDelegation.delegate(tokenId1, true);
+      const newDelegationStartBlock = await stargateDelegation.clock();
+      await mineBlocks(config.DELEGATION_PERIOD_DURATION);
+
+      accumulatedRewards = await stargateDelegation.accumulatedRewards(tokenId1);
+      expect(accumulatedRewards).to.equal(
+        config.VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL[0].rewardPerBlock *
+          BigInt(config.DELEGATION_PERIOD_DURATION)
+      );
+
+      claimableRewards = await stargateDelegation.claimableRewards(tokenId1);
+      expect(claimableRewards).to.equal(accumulatedRewards);
+
+      // Claim the rewards
+      await stargateDelegation.claimRewards(tokenId1);
+
+      // Verify the rewards accumulation start block is set to the next block after the exit block
+      const lastCompletedPeriodEndBlock =
+        await stargateDelegation.calculateLastCompletedPeriodEndBlock(tokenId1);
+      expect(lastCompletedPeriodEndBlock).to.equal(
+        newDelegationStartBlock + BigInt(config.DELEGATION_PERIOD_DURATION)
+      );
+
+      const newAccumulationStartBlock =
+        await stargateDelegation.getRewardsAccumulationStartBlock(tokenId1);
+      expect(newAccumulationStartBlock).to.equal(lastCompletedPeriodEndBlock);
+
+      // since delegation is still active we need to have 1 block of accumulated rewards (the block when we claimed the rewards)
+      accumulatedRewards = await stargateDelegation.accumulatedRewards(tokenId1);
+      expect(accumulatedRewards).to.equal(
+        config.VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL[0].rewardPerBlock * 1n
+      );
+
+      claimableRewards = await stargateDelegation.claimableRewards(tokenId1);
+      expect(claimableRewards).to.equal(0);
     });
   });
 
