@@ -71,7 +71,7 @@
       "cache": false,
       "dependsOn": ["^compile", "@repo/config#check-or-generate-local-config"]
     },
-    "@vechain/stargate-contracts-artifacts#build": {
+    "@repo/artifacts#build": {
       "cache": false,
       "dependsOn": ["@repo/contracts#compile", "^compile"]
     },
@@ -136,14 +136,15 @@
       "outputs": [],
       "cache": false
     },
-    "upgrade:contract:local": {
-      "dependsOn": ["upgrade:contract"]
-    },
     "upgrade:contract:testnet": {
-      "dependsOn": ["upgrade:contract"]
+      "dependsOn": ["@repo/config#check-or-generate-local-config"],
+      "outputs": [],
+      "cache": false
     },
     "upgrade:contract:mainnet": {
-      "dependsOn": ["upgrade:contract"]
+      "dependsOn": ["@repo/config#check-or-generate-local-config"],
+      "outputs": [],
+      "cache": false
     }
   }
 }
