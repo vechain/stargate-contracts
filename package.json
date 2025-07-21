@@ -22,7 +22,7 @@
     "check-contracts-deployment": "dotenv -v VITE_APP_ENV=local turbo check-contracts-deployment --filter=contracts",
     "check-contracts-deployment:testnet": "dotenv -v VITE_APP_ENV=testnet turbo check-contracts-deployment:testnet --filter=contracts",
     "check-contracts-deployment:mainnet": "dotenv -v VITE_APP_ENV=mainnet turbo check-contracts-deployment:mainnet --filter=contracts",
-    "artifacts:build": "turbo build --filter=@repo/artifacts",
+    "artifacts:build": "turbo build --filter=@vechain/stargate-contracts-artifacts",
     "solo-up": "make solo-up",
     "solo-down": "make solo-down",
     "solo-clean": "make solo-clean",
