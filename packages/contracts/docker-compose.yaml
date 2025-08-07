@@ -1,16 +1,16 @@
 services:
   thor-solo:
-    image: ghcr.io/vechain/thor:release-hayabusa-latest
+    image: ghcr.io/vechain/thor:release-galactica-latest
     hostname: thor-solo
     container_name: thor-solo
     user: root
     environment:
       - DOCKER=1
-    entrypoint: [
+    entrypoint:
+      [
         "/bin/sh",
         "-c",
-        # Set the block interval to 3600 seconds (1 hour) for testing purposes, this way the blockchain wont mine any unwanted blocks and we can control the mining process
-        "apk update && apk upgrade && apk add curl && thor solo --on-demand --data-dir /data/thor --api-addr 0.0.0.0:8669 --api-cors '*' --verbosity 10 --block-interval 3600",
+        "apk update && apk upgrade && apk add curl && thor solo --on-demand --persist --data-dir /data/thor --api-addr 0.0.0.0:8669 --api-cors '*' --verbosity 3",
       ]
     ports:
       - "8669:8669"
