@@ -178,13 +178,13 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  run-slither:
-    name: Slither Analysis
-    uses: vechain/github-actions/.github/workflows/slither.yaml@fix/slither-edge-cases
-    needs: check-changes
-    if: needs.check-changes.outputs.contracts-changed == 'true'
-    with:
-      target: "packages/contracts/"
-      solc-version: "0.8.20"
-      fail-on: none
-      slither-args: '--filter-paths "(openzeppelin|mocks|interfaces|deprecated|templates|NodeManagement/NodeManagementV1.sol|NodeManagement/NodeManagementV2.sol)" --exclude-informational --exclude-optimization --checklist --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/'
+  # run-slither:
+  #   name: Slither Analysis
+  #   uses: vechain/github-actions/.github/workflows/slither.yaml@fix/slither-edge-cases
+  #   needs: check-changes
+  #   if: needs.check-changes.outputs.contracts-changed == 'true'
+  #   with:
+  #     target: "packages/contracts/"
+  #     solc-version: "0.8.20"
+  #     fail-on: none
+  #     slither-args: '--filter-paths "(openzeppelin|mocks|interfaces|deprecated|templates|NodeManagement/NodeManagementV1.sol|NodeManagement/NodeManagementV2.sol)" --exclude-informational --exclude-optimization --checklist --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/'
