@@ -1,17 +1,18 @@
-# This workflow is triggered when a release is published:
-# It will check that the version in the package.json matches the tag name on the last commit
-# If version matches it will then deploy the frontend app to the production environment on Vercel
-name: Vercel Production Deployment
+# This workflow is triggered when a release is published that contains the tag contracts-artifacts is created:
+# It will check that the version in the package.json matches the tag on the release
+# If version matches it will build and release on npm a package containing the contracts artifacts
+name: Contracts Artifacts Release
+permissions:
+  contents: read
+  packages: write
 env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
   # Increase Node.js memory to prevent build failures
   NODE_OPTIONS: "--max-old-space-size=4096"
 on:
   release:
     types: [published]
 jobs:
-  Deploy-Production:
+  release-npm-package:
     # if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
@@ -26,7 +27,7 @@ jobs:
         id: package-version
         uses: notiz-dev/github-action-json-property@release
         with:
-          path: "apps/frontend/package.json"
+          path: "packages/contracts-artifacts/package.json"
           prop_path: "version"
 
       - name: Ensure the package.json version matches the tag version
@@ -36,19 +37,21 @@ jobs:
           script: |
             core.setFailed('The version in the package must match the tag.')
 
-      - name: Install dependencies
+      - name: install dependencies
         run: yarn install --frozen-lockfile
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-
-      - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Build Project Artifacts
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: yarn artifacts:build
 
-      - name: Deploy Project Artifacts to Vercel
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Publish to NPM
+        run: |
+          cd packages/contracts-artifacts
+          # Write .npmrc in the current directory
+          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > .npmrc
+          echo "registry=https://registry.npmjs.org/" >> .npmrc
+          echo "always-auth=true" >> .npmrc
+          yarn publish --access public
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
