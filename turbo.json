@@ -110,20 +110,14 @@
       "dependsOn": ["^@repo/config#check-or-generate-local-config"]
     },
     "test:thor-solo": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["^@repo/config#check-or-generate-local-config"]
     },
     "test:hardhat": {
       "cache": false,
       "dependsOn": ["@repo/config#check-or-generate-local-config"]
     },
     "generate-docs": {
-      "cache": false
-    },
-    "verify:testnet": {
-      "cache": false,
-      "dependsOn": ["^compile"]
-    },
-    "verify:mainnet": {
       "cache": false,
       "dependsOn": ["^compile"]
     },
@@ -145,6 +139,42 @@
       "dependsOn": ["@repo/config#check-or-generate-local-config"],
       "outputs": [],
       "cache": false
+    },
+    "calculate-lost-rewards": {
+      "cache": false,
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "calculate-lost-rewards:testnet": {
+      "cache": false,
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "calculate-lost-rewards:mainnet": {
+      "cache": false,
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "seed-lost-rewards": {
+      "cache": false,
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "seed-lost-rewards:testnet": {
+      "cache": false,
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "seed-lost-rewards:mainnet": {
+      "cache": false,
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "claim-burned-nft-rewards": {
+      "cache": false,
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "claim-burned-nft-rewards:testnet": {
+      "cache": false,
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
+    "claim-burned-nft-rewards:mainnet": {
+      "cache": false,
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
     }
   }
 }
