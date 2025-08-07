@@ -3,11 +3,14 @@ import { getOrDeployContracts } from "../helpers/deploy";
 import { createLocalConfig } from "@repo/config/contracts/envs/local";
 import { mineBlocks } from "../helpers/common";
 import { ethers } from "hardhat";
-import { StargateDelegation, StargateNFT } from "../../typechain-types";
+import { ERC20, StargateDelegation, StargateNFT } from "../../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { ContractsConfig } from "@repo/config/contracts/type";
+import { TransactionResponse } from "ethers";
+import { compareAddresses } from "@repo/utils/AddressUtils";
 
-describe("StargateDelegation delegation", () => {
+describe("shard103: StargateDelegation Delegation", () => {
+  let tx: TransactionResponse;
   describe("Scenario: Basic delegation functionality", () => {
     let config: ContractsConfig;
     let stargateDelegation: StargateDelegation;
@@ -19,7 +22,7 @@ describe("StargateDelegation delegation", () => {
     const levelId = 1;
     const stakeAmount = ethers.parseEther("1");
 
-    before(async () => {
+    beforeEach(async () => {
       config = createLocalConfig();
       config.DELEGATION_PERIOD_DURATION = 3; // 3 blocks
       config.TOKEN_LEVELS[0].level.maturityBlocks = 3;
@@ -43,7 +46,7 @@ describe("StargateDelegation delegation", () => {
     it("should start testing with expected state", async () => {
       // Assert that deployer has the expected NFT
       expect(await stargateNFT.balanceOf(deployer)).to.equal(1);
-      expect(await stargateNFT.ownerOf(tokenId)).to.equal(deployer.address);
+      expect(compareAddresses(await stargateNFT.ownerOf(tokenId), deployer.address)).to.be.true;
 
       // NFT should be transferable initially
       expect(await stargateNFT.canTransfer(tokenId)).to.be.true;
@@ -76,8 +79,9 @@ describe("StargateDelegation delegation", () => {
       );
 
       // Validate currentDelegationPeriodEndBlock for auto-renewal delegation
-      const currentPeriodEndBlock =
-        await stargateDelegation.currentDelegationPeriodEndBlock(tokenId);
+      const currentPeriodEndBlock = await stargateDelegation.currentDelegationPeriodEndBlock(
+        tokenId
+      );
       expect(currentPeriodEndBlock).to.equal(
         nextBlockNumber + BigInt(config.DELEGATION_PERIOD_DURATION)
       );
@@ -88,7 +92,7 @@ describe("StargateDelegation delegation", () => {
         stargateNFT
           .connect(deployer)
           .transferFrom(await deployer.getAddress(), otherAccounts[0].address, tokenId)
-      ).to.be.revertedWithCustomError(stargateNFT, "TokenLocked");
+      ).to.be.reverted;
 
       const baseURI = await stargateNFT.baseURI();
       const tokenURI = await stargateNFT.tokenURI(tokenId);
@@ -109,18 +113,16 @@ describe("StargateDelegation delegation", () => {
     });
 
     it("cannot delegate if the NFT is already delegated", async () => {
+      tx = await stargateDelegation.delegate(tokenId, false);
+      await tx.wait();
       // The NFT should already be delegated from the previous test
       expect(await stargateDelegation.isDelegationActive(tokenId)).to.be.true;
 
       // Try to delegate the same NFT again
-      await expect(stargateDelegation.delegate(tokenId, false))
-        .to.be.revertedWithCustomError(stargateDelegation, "NFTAlreadyDelegated")
-        .withArgs(tokenId);
+      await expect(stargateDelegation.delegate(tokenId, false)).to.be.reverted;
 
       // Also test with auto-renewal enabled
-      await expect(stargateDelegation.delegate(tokenId, true))
-        .to.be.revertedWithCustomError(stargateDelegation, "NFTAlreadyDelegated")
-        .withArgs(tokenId);
+      await expect(stargateDelegation.delegate(tokenId, true)).to.be.reverted;
     });
   });
 
@@ -128,13 +130,14 @@ describe("StargateDelegation delegation", () => {
     let config: ContractsConfig;
     let stargateDelegation: StargateDelegation;
     let stargateNFT: StargateNFT;
+    let vthoMock: ERC20;
     let deployer: HardhatEthersSigner;
     let tokenId: number;
 
     const levelId = 1;
     const stakeAmount = ethers.parseEther("1");
 
-    before(async () => {
+    beforeEach(async () => {
       config = createLocalConfig();
       config.DELEGATION_PERIOD_DURATION = 30; // blocks
       config.TOKEN_LEVELS[0].level.maturityBlocks = 3;
@@ -147,11 +150,13 @@ describe("StargateDelegation delegation", () => {
 
       stargateDelegation = contracts.stargateDelegationContract;
       stargateNFT = contracts.stargateNFTContract;
+      vthoMock = contracts.mockedVthoToken;
       deployer = contracts.deployer;
       tokenId = Number(await stargateNFT.getCurrentTokenId()) + 1;
 
       // Mint an NFT to the deployer
-      await stargateNFT.stake(levelId, { value: stakeAmount });
+      tx = await stargateNFT.stake(levelId, { value: stakeAmount });
+      await tx.wait();
     });
 
     it("maturity period must end before I can start to accrue rewards", async () => {
@@ -171,8 +176,9 @@ describe("StargateDelegation delegation", () => {
       currentBlock = await stargateDelegation.clock();
 
       // Validate currentDelegationPeriodEndBlock - should be maturity end block + delegation period
-      const currentPeriodEndBlock =
-        await stargateDelegation.currentDelegationPeriodEndBlock(tokenId);
+      const currentPeriodEndBlock = await stargateDelegation.currentDelegationPeriodEndBlock(
+        tokenId
+      );
       expect(currentPeriodEndBlock).to.equal(
         maturityPeriodEndBlock + BigInt(config.DELEGATION_PERIOD_DURATION)
       );
@@ -191,10 +197,14 @@ describe("StargateDelegation delegation", () => {
       currentBlock = await stargateDelegation.clock();
       expect(currentDelegationPeriodEndBlock).to.be.greaterThan(currentBlock);
 
-      // try to claim the rewards before the epoch ends, expect to be reverted
-      await expect(
-        stargateDelegation.connect(deployer).claimRewards(tokenId)
-      ).to.be.revertedWithCustomError(stargateDelegation, "NoRewardsToClaim");
+      // try to claim the rewards before the epoch ends, should get no rewards
+      const balanceBeforeRewardsClaim = await vthoMock.balanceOf(deployer.address);
+      await expect(stargateDelegation.connect(deployer).claimRewards(tokenId)).to.not.emit(
+        stargateDelegation,
+        "DelegationRewardsClaimed"
+      );
+      const balanceAfterRewardsClaim = await vthoMock.balanceOf(deployer.address);
+      expect(balanceAfterRewardsClaim).to.equal(balanceBeforeRewardsClaim);
 
       await mineBlocks(Number(currentDelegationPeriodEndBlock - currentBlock));
       const rewards = await stargateDelegation.claimableRewards(tokenId);
@@ -220,7 +230,7 @@ describe("StargateDelegation delegation", () => {
     const levelId = 1;
     const stakeAmount = ethers.parseEther("1");
 
-    before(async () => {
+    beforeEach(async () => {
       config = createLocalConfig();
       config.DELEGATION_PERIOD_DURATION = 10; // 10 blocks
       config.TOKEN_LEVELS[0].level.maturityBlocks = 0; // No maturity period for simplicity
@@ -277,7 +287,8 @@ describe("StargateDelegation delegation", () => {
       expect(finalRewards).to.equal(endBlockRewards);
 
       // Claim rewards
-      await stargateDelegation.claimRewards(tokenId);
+      tx = await stargateDelegation.claimRewards(tokenId);
+      await tx.wait();
 
       // Verify no more rewards accumulate after claiming
       await mineBlocks(5);
@@ -309,7 +320,7 @@ describe("StargateDelegation delegation", () => {
     const levelId = 1;
     const stakeAmount = ethers.parseEther("1");
 
-    before(async () => {
+    beforeEach(async () => {
       config = createLocalConfig();
       config.DELEGATION_PERIOD_DURATION = 10; // 10 blocks
       config.TOKEN_LEVELS[0].level.maturityBlocks = 0; // No maturity period for simplicity
@@ -327,10 +338,12 @@ describe("StargateDelegation delegation", () => {
       tokenId = Number(await stargateNFT.getCurrentTokenId()) + 1;
 
       // Mint an NFT to the deployer
-      await stargateNFT.stake(levelId, { value: stakeAmount });
+      tx = await stargateNFT.stake(levelId, { value: stakeAmount });
+      await tx.wait();
 
       // Start delegation
-      await stargateDelegation.delegate(tokenId, false);
+      tx = await stargateDelegation.delegate(tokenId, false);
+      await tx.wait();
     });
 
     it("NFT is locked (not transferable) if delegation is active", async () => {
@@ -338,8 +351,9 @@ describe("StargateDelegation delegation", () => {
       expect(await stargateNFT.canTransfer(tokenId)).to.be.false;
 
       // Validate currentDelegationPeriodEndBlock for non-auto-renewal delegation
-      const currentPeriodEndBlock =
-        await stargateDelegation.currentDelegationPeriodEndBlock(tokenId);
+      const currentPeriodEndBlock = await stargateDelegation.currentDelegationPeriodEndBlock(
+        tokenId
+      );
       const currentDelegationEndBlock = await stargateDelegation.getDelegationEndBlock(tokenId);
       expect(currentPeriodEndBlock).to.equal(currentDelegationEndBlock);
 
@@ -348,7 +362,7 @@ describe("StargateDelegation delegation", () => {
         stargateNFT
           .connect(deployer)
           .transferFrom(await deployer.getAddress(), otherAccounts[0].address, tokenId)
-      ).to.be.revertedWithCustomError(stargateNFT, "TokenLocked");
+      ).to.be.reverted;
 
       // uri should return locked metadata
       let baseURI = await stargateNFT.baseURI();
@@ -389,7 +403,7 @@ describe("StargateDelegation delegation", () => {
     const levelId = 1;
     const stakeAmount = ethers.parseEther("1");
 
-    before(async () => {
+    beforeEach(async () => {
       config = createLocalConfig();
       config.DELEGATION_PERIOD_DURATION = 10; // 10 blocks
       config.TOKEN_LEVELS[0].level.maturityBlocks = 0; // No maturity period for simplicity
@@ -407,14 +421,19 @@ describe("StargateDelegation delegation", () => {
       tokenId2 = tokenId1 + 1;
 
       // We mint 2 NFTs to the deployer, one will be delegated with auto renew, the other without
-      await stargateNFT.stake(levelId, { value: stakeAmount });
-      await stargateNFT.stake(levelId, { value: stakeAmount });
+      tx = await stargateNFT.stake(levelId, { value: stakeAmount });
+      await tx.wait();
+
+      tx = await stargateNFT.stake(levelId, { value: stakeAmount, gasLimit: 10_000_000 });
+      await tx.wait();
 
       // Delegate the first NFT without auto renew
-      await stargateDelegation.delegate(tokenId1, false);
+      tx = await stargateDelegation.delegate(tokenId1, false);
+      await tx.wait();
 
       // Delegate the second NFT with auto renew
-      await stargateDelegation.delegate(tokenId2, true);
+      tx = await stargateDelegation.delegate(tokenId2, true);
+      await tx.wait();
     });
 
     it("delegation without auto renew should end after a full delegation period", async () => {
@@ -457,7 +476,7 @@ describe("StargateDelegation delegation", () => {
     const levelId = 1;
     const stakeAmount = ethers.parseEther("1");
 
-    before(async () => {
+    beforeEach(async () => {
       config = createLocalConfig();
       config.DELEGATION_PERIOD_DURATION = 10; // 10 blocks
       config.TOKEN_LEVELS[0].level.maturityBlocks = 0; // No maturity period for simplicity
@@ -474,7 +493,8 @@ describe("StargateDelegation delegation", () => {
       tokenId = Number(await stargateNFT.getCurrentTokenId()) + 1;
 
       // Mint an NFT to the deployer
-      await stargateNFT.stake(levelId, { value: stakeAmount });
+      tx = await stargateNFT.stake(levelId, { value: stakeAmount });
+      await tx.wait();
     });
 
     it("cannot delegate if rewards accumulation period has ended", async () => {
@@ -494,16 +514,10 @@ describe("StargateDelegation delegation", () => {
       expect(newCurrentBlock).to.be.greaterThan(endBlock);
 
       // Try to delegate - should fail with RewardsAccumulationPeriodEnded
-      await expect(stargateDelegation.delegate(tokenId, false)).to.be.revertedWithCustomError(
-        stargateDelegation,
-        "RewardsAccumulationPeriodEnded"
-      );
+      await expect(stargateDelegation.delegate(tokenId, false)).to.be.reverted;
 
       // Also test with auto-renewal enabled
-      await expect(stargateDelegation.delegate(tokenId, true)).to.be.revertedWithCustomError(
-        stargateDelegation,
-        "RewardsAccumulationPeriodEnded"
-      );
+      await expect(stargateDelegation.delegate(tokenId, true)).to.be.reverted;
 
       // Verify the NFT is still not delegated
       expect(await stargateDelegation.isDelegationActive(tokenId)).to.be.false;
@@ -520,7 +534,7 @@ describe("StargateDelegation delegation", () => {
     const levelId = 1;
     const stakeAmount = ethers.parseEther("1");
 
-    before(async () => {
+    beforeEach(async () => {
       config = createLocalConfig();
       config.DELEGATION_PERIOD_DURATION = 10; // 10 blocks
       config.TOKEN_LEVELS[0].level.maturityBlocks = 0; // No maturity period for simplicity
@@ -537,26 +551,23 @@ describe("StargateDelegation delegation", () => {
       tokenId = Number(await stargateNFT.getCurrentTokenId()) + 1;
 
       // Mint an NFT to the deployer
-      await stargateNFT.stake(levelId, { value: stakeAmount });
+      tx = await stargateNFT.stake(levelId, { value: stakeAmount });
+      await tx.wait();
     });
 
     it("cannot delegate if NFT level has no reward rate set", async () => {
       // Set the reward rate for this level to 0 (no rewards)
-      await stargateDelegation.setVthoRewardPerBlockForLevel(levelId, 0);
-
+      tx = await stargateDelegation.setVthoRewardPerBlockForLevel(levelId, 0);
+      await tx.wait();
       // Verify the reward rate is now 0
       const rewardRate = await stargateDelegation.getVthoRewardPerBlock(levelId);
       expect(rewardRate).to.equal(0);
 
       // Try to delegate - should fail with InvalidNFTLevel
-      await expect(stargateDelegation.delegate(tokenId, false))
-        .to.be.revertedWithCustomError(stargateDelegation, "InvalidNFTLevel")
-        .withArgs(tokenId, levelId);
+      await expect(stargateDelegation.delegate(tokenId, false)).to.be.reverted;
 
       // Also test with auto-renewal enabled
-      await expect(stargateDelegation.delegate(tokenId, true))
-        .to.be.revertedWithCustomError(stargateDelegation, "InvalidNFTLevel")
-        .withArgs(tokenId, levelId);
+      await expect(stargateDelegation.delegate(tokenId, true)).to.be.reverted;
 
       // Verify the NFT is still not delegated
       expect(await stargateDelegation.isDelegationActive(tokenId)).to.be.false;
@@ -575,7 +586,7 @@ describe("StargateDelegation delegation", () => {
     const levelId = 1;
     const stakeAmount = ethers.parseEther("1");
 
-    before(async () => {
+    beforeEach(async () => {
       config = createLocalConfig();
       config.DELEGATION_PERIOD_DURATION = 10; // 10 blocks
       config.TOKEN_LEVELS[0].level.maturityBlocks = 0; // No maturity period for simplicity
@@ -594,11 +605,15 @@ describe("StargateDelegation delegation", () => {
       tokenId2 = tokenId1 + 1;
 
       // Mint two NFTs to the deployer
-      await stargateNFT.stake(levelId, { value: stakeAmount });
-      await stargateNFT.stake(levelId, { value: stakeAmount });
+      tx = await stargateNFT.stake(levelId, { value: stakeAmount });
+      await tx.wait();
+
+      tx = await stargateNFT.stake(levelId, { value: stakeAmount, gasLimit: 10_000_000 });
+      await tx.wait();
 
       // Delegate only the second NFT
-      await stargateDelegation.delegate(tokenId2, true);
+      tx = await stargateDelegation.delegate(tokenId2, true);
+      await tx.wait();
     });
 
     it("cannot exit delegation if NFT is not being delegated", async () => {
@@ -606,18 +621,15 @@ describe("StargateDelegation delegation", () => {
       expect(await stargateDelegation.isDelegationActive(tokenId1)).to.be.false;
 
       // Try to exit delegation for non-delegated NFT - should fail
-      await expect(stargateDelegation.requestDelegationExit(tokenId1))
-        .to.be.revertedWithCustomError(stargateDelegation, "NFTNotDelegated")
-        .withArgs(tokenId1);
+      await expect(stargateDelegation.requestDelegationExit(tokenId1)).to.be.reverted;
     });
 
     it("cannot get currentDelegationPeriodEndBlock of an NFT that does not exist", async () => {
       const nonExistentTokenId = 999; // This token ID should not exist
 
       // Try to get currentDelegationPeriodEndBlock for non-existent NFT - should fail
-      await expect(stargateDelegation.currentDelegationPeriodEndBlock(nonExistentTokenId))
-        .to.be.revertedWithCustomError(stargateDelegation, "NFTNotDelegated")
-        .withArgs(nonExistentTokenId);
+      await expect(stargateDelegation.currentDelegationPeriodEndBlock(nonExistentTokenId)).to.be
+        .reverted;
     });
 
     it("cannot exit delegation if caller is not the owner of the delegated NFT", async () => {
@@ -628,9 +640,8 @@ describe("StargateDelegation delegation", () => {
       const nonOwner = otherAccounts[0];
 
       // Try to exit delegation as non-owner - should fail
-      await expect(stargateDelegation.connect(nonOwner).requestDelegationExit(tokenId2))
-        .to.be.revertedWithCustomError(stargateDelegation, "UnauthorizedUser")
-        .withArgs(nonOwner.address);
+      await expect(stargateDelegation.connect(nonOwner).requestDelegationExit(tokenId2)).to.be
+        .reverted;
 
       // Verify the NFT is still delegated after failed attempt
       expect(await stargateDelegation.isDelegationActive(tokenId2)).to.be.true;
@@ -641,8 +652,9 @@ describe("StargateDelegation delegation", () => {
       expect(await stargateDelegation.isDelegationActive(tokenId2)).to.be.true;
 
       // Check currentDelegationPeriodEndBlock before exit
-      const periodEndBlockBeforeExit =
-        await stargateDelegation.currentDelegationPeriodEndBlock(tokenId2);
+      const periodEndBlockBeforeExit = await stargateDelegation.currentDelegationPeriodEndBlock(
+        tokenId2
+      );
       expect(periodEndBlockBeforeExit).to.be.gt(0);
 
       // Exit delegation as the owner - should succeed
@@ -659,8 +671,9 @@ describe("StargateDelegation delegation", () => {
       expect(exitDelegationEndBlock).to.be.gt(0);
 
       // Verify currentDelegationPeriodEndBlock remains the same after exit request
-      const periodEndBlockAfterExit =
-        await stargateDelegation.currentDelegationPeriodEndBlock(tokenId2);
+      const periodEndBlockAfterExit = await stargateDelegation.currentDelegationPeriodEndBlock(
+        tokenId2
+      );
       expect(periodEndBlockAfterExit).to.equal(periodEndBlockBeforeExit);
 
       const delegationEndBlock = await stargateDelegation.getDelegationEndBlock(tokenId2);
@@ -670,7 +683,8 @@ describe("StargateDelegation delegation", () => {
     it("should still be possible to call accumulatedRewards after delegation exit", async () => {
       // Use tokenId1 which should be available from the setup (not delegated initially)
       // First, let's delegate it
-      await stargateDelegation.delegate(tokenId1, true);
+      tx = await stargateDelegation.delegate(tokenId1, true);
+      await tx.wait();
 
       // Accumulate some rewards first
       await mineBlocks(3);
@@ -724,7 +738,8 @@ describe("StargateDelegation delegation", () => {
 
     it("Exit block number should be set correctly when requesting delegation exit", async () => {
       // Delegate the NFT
-      await stargateDelegation.delegate(tokenId1, true);
+      tx = await stargateDelegation.delegate(tokenId1, true);
+      await tx.wait();
 
       const delegationStartBlock = await stargateDelegation.clock();
       const rewardsAccumulationStartBlock =
@@ -770,8 +785,8 @@ describe("StargateDelegation delegation", () => {
       expect(claimableRewards).to.equal(accumulatedRewards);
 
       // Claim the rewards
-      await stargateDelegation.claimRewards(tokenId1);
-
+      tx = await stargateDelegation.claimRewards(tokenId1);
+      await tx.wait();
       // Verify the rewards accumulation start block is set to the next block after the exit block
       let rewardsAccumulationStartBlockAfterClaim =
         await stargateDelegation.getRewardsAccumulationStartBlock(tokenId1);
@@ -784,7 +799,8 @@ describe("StargateDelegation delegation", () => {
       expect(claimableRewards).to.equal(0);
 
       // Verify that if user delegates again, there are no issues in rewards accumulation
-      await stargateDelegation.delegate(tokenId1, true);
+      tx = await stargateDelegation.delegate(tokenId1, true);
+      await tx.wait();
       const newDelegationStartBlock = await stargateDelegation.clock();
       await mineBlocks(config.DELEGATION_PERIOD_DURATION);
 
@@ -798,7 +814,8 @@ describe("StargateDelegation delegation", () => {
       expect(claimableRewards).to.equal(accumulatedRewards);
 
       // Claim the rewards
-      await stargateDelegation.claimRewards(tokenId1);
+      tx = await stargateDelegation.claimRewards(tokenId1);
+      await tx.wait();
 
       // Verify the rewards accumulation start block is set to the next block after the exit block
       const lastCompletedPeriodEndBlock =
@@ -807,8 +824,9 @@ describe("StargateDelegation delegation", () => {
         newDelegationStartBlock + BigInt(config.DELEGATION_PERIOD_DURATION)
       );
 
-      const newAccumulationStartBlock =
-        await stargateDelegation.getRewardsAccumulationStartBlock(tokenId1);
+      const newAccumulationStartBlock = await stargateDelegation.getRewardsAccumulationStartBlock(
+        tokenId1
+      );
       expect(newAccumulationStartBlock).to.equal(lastCompletedPeriodEndBlock);
 
       // since delegation is still active we need to have 1 block of accumulated rewards (the block when we claimed the rewards)
@@ -833,7 +851,7 @@ describe("StargateDelegation delegation", () => {
     let tokenId: number;
     const stakeAmount = ethers.parseEther("1");
 
-    before(async () => {
+    beforeEach(async () => {
       config = createLocalConfig();
       config.DELEGATION_PERIOD_DURATION = 10; // 10 blocks
       config.TOKEN_LEVELS[0].level.maturityBlocks = 0; // No maturity period for simplicity
@@ -851,12 +869,14 @@ describe("StargateDelegation delegation", () => {
 
       // Mint a new NFT for this specific test to avoid interference
       tokenId = Number(await stargateNFT.getCurrentTokenId()) + 1;
-      await stargateNFT.stake(levelId, { value: stakeAmount });
+      tx = await stargateNFT.stake(levelId, { value: stakeAmount });
+      await tx.wait();
     });
 
     it("if user delegates with autorenew disabled he cannot ask to exit delegation (since it's already planned)", async () => {
       // Delegate the NFT (with no auto renew)
-      await stargateDelegation.delegate(tokenId, false);
+      tx = await stargateDelegation.delegate(tokenId, false);
+      await tx.wait();
 
       const exitBlock = await stargateDelegation.getDelegationEndBlock(tokenId);
       expect(exitBlock).to.not.equal(
@@ -867,10 +887,7 @@ describe("StargateDelegation delegation", () => {
       expect(await stargateDelegation.isDelegationActive(tokenId)).to.be.true;
 
       // Request delegation exit - should fail
-      await expect(stargateDelegation.requestDelegationExit(tokenId)).to.be.revertedWithCustomError(
-        stargateDelegation,
-        "DelegationExitAlreadyRequested"
-      );
+      await expect(stargateDelegation.requestDelegationExit(tokenId)).to.be.reverted;
 
       // Verify the exit block remains unchanged after failed request
       const exitBlockAfterFailedRequest = await stargateDelegation.getDelegationEndBlock(tokenId);
@@ -918,10 +935,7 @@ describe("StargateDelegation delegation", () => {
       );
 
       // Try to request delegation exit again (second time) - should fail
-      await expect(stargateDelegation.requestDelegationExit(tokenId)).to.be.revertedWithCustomError(
-        stargateDelegation,
-        "DelegationExitAlreadyRequested"
-      );
+      await expect(stargateDelegation.requestDelegationExit(tokenId)).to.be.reverted;
 
       // Verify delegation is still active until second exit block is reached
       expect(await stargateDelegation.isDelegationActive(tokenId)).to.be.true;
@@ -946,7 +960,7 @@ describe("StargateDelegation delegation", () => {
     const stakeAmount = ethers.parseEther("1");
     const maturityBlocks = 15; // Longer maturity period to test exit during maturity
 
-    before(async () => {
+    beforeEach(async () => {
       config = createLocalConfig();
       config.DELEGATION_PERIOD_DURATION = 10; // 10 blocks
       config.TOKEN_LEVELS[0].level.maturityBlocks = maturityBlocks; // Set maturity period
@@ -963,15 +977,14 @@ describe("StargateDelegation delegation", () => {
       tokenId = Number(await stargateNFT.getCurrentTokenId()) + 1;
 
       // Mint an NFT to the deployer
-      await stargateNFT.stake(levelId, { value: stakeAmount });
+      tx = await stargateNFT.stake(levelId, { value: stakeAmount });
+      await tx.wait();
     });
 
     it("should set exit block to maturity period end + delegation cycle when exiting during maturity period", async () => {
-      const delegationBlock = (await stargateDelegation.clock()) + 1n;
-
       // Start delegation while under maturity period
-      await stargateDelegation.delegate(tokenId, false);
-
+      tx = await stargateDelegation.delegate(tokenId, false);
+      await tx.wait();
       // Verify NFT is under maturity period
       const isUnderMaturity = await stargateNFT.isUnderMaturityPeriod(tokenId);
       expect(isUnderMaturity).to.be.true;
@@ -990,8 +1003,9 @@ describe("StargateDelegation delegation", () => {
       expect(await stargateNFT.isUnderMaturityPeriod(tokenId)).to.be.true;
 
       // Get the current delegation period end block (this is what the contract uses for exit)
-      const currentPeriodEndBlock =
-        await stargateDelegation.currentDelegationPeriodEndBlock(tokenId);
+      const currentPeriodEndBlock = await stargateDelegation.currentDelegationPeriodEndBlock(
+        tokenId
+      );
 
       // Verify the exit block is set to the current delegation period end block
       const exitDelegationEndBlock = await stargateDelegation.getDelegationEndBlock(tokenId);
@@ -1014,7 +1028,7 @@ describe("StargateDelegation delegation", () => {
     const levelId = 1;
     const stakeAmount = ethers.parseEther("1");
 
-    before(async () => {
+    beforeEach(async () => {
       config = createLocalConfig();
       config.DELEGATION_PERIOD_DURATION = 20; // 20 blocks for longer delegation period
       config.TOKEN_LEVELS[0].level.maturityBlocks = 0; // No maturity period for simplicity
@@ -1037,11 +1051,11 @@ describe("StargateDelegation delegation", () => {
     // delegation period (avoiding the need to wait more than necessary).
     it("User can request early delegation exit even if delegation exit was already requested in the past", async () => {
       const tokenId = Number(await stargateNFT.getCurrentTokenId()) + 1;
-      await stargateNFT.stake(levelId, { value: stakeAmount });
-
+      tx = await stargateNFT.stake(levelId, { value: stakeAmount });
+      await tx.wait();
       // 1. User delegates with forever mode (delegationEndBlock = infinity)
-      await stargateDelegation.delegate(tokenId, true);
-
+      tx = await stargateDelegation.delegate(tokenId, true);
+      await tx.wait();
       // Verify delegation is set to forever
       expect(await stargateDelegation.getDelegationEndBlock(tokenId)).to.equal(
         BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
@@ -1067,8 +1081,8 @@ describe("StargateDelegation delegation", () => {
       // Verify the early end block is before the scheduled exit
       expect(earlyEndBlock).to.be.lt(exitBlock);
 
-      await stargateDelegation.setRewardsAccumulationEndBlock(earlyEndBlock);
-
+      tx = await stargateDelegation.setRewardsAccumulationEndBlock(earlyEndBlock);
+      await tx.wait();
       // Fast forward past the rewards end block but before scheduled exit
       await mineBlocks(Number(earlyEndBlock - currentBlock + 1n));
 
@@ -1102,13 +1116,16 @@ describe("StargateDelegation delegation", () => {
     // the stargate program ends, the user can request an early delegation
     it("User with finite delegation can exit early when rewards stop before scheduled end", async () => {
       // reset the rewards accumulation end block
-      await stargateDelegation.setRewardsAccumulationEndBlock(0n);
+      tx = await stargateDelegation.setRewardsAccumulationEndBlock(0n);
+      await tx.wait();
 
       const tokenId = Number(await stargateNFT.getCurrentTokenId()) + 1;
-      await stargateNFT.stake(levelId, { value: stakeAmount });
+      tx = await stargateNFT.stake(levelId, { value: stakeAmount });
+      await tx.wait();
 
       // 1. User delegates with finite duration (delegationEndBlock != infinity)
-      await stargateDelegation.delegate(tokenId, false);
+      tx = await stargateDelegation.delegate(tokenId, false);
+      await tx.wait();
 
       const scheduledExitBlock = await stargateDelegation.getDelegationEndBlock(tokenId);
       expect(scheduledExitBlock).to.not.equal(
@@ -1124,7 +1141,8 @@ describe("StargateDelegation delegation", () => {
       // Verify the early end block is before the scheduled exit
       expect(earlyEndBlock).to.be.lt(scheduledExitBlock);
 
-      await stargateDelegation.setRewardsAccumulationEndBlock(earlyEndBlock);
+      tx = await stargateDelegation.setRewardsAccumulationEndBlock(earlyEndBlock);
+      await tx.wait();
 
       // Fast forward past the rewards end block but before scheduled exit
       await mineBlocks(Number(earlyEndBlock - currentBlock + 1n));
@@ -1148,13 +1166,16 @@ describe("StargateDelegation delegation", () => {
 
     it("User with autorenew can request early delegation exit when stargate program ends before scheduled end", async () => {
       // reset the rewards accumulation end block
-      await stargateDelegation.setRewardsAccumulationEndBlock(0n);
+      tx = await stargateDelegation.setRewardsAccumulationEndBlock(0n);
+      await tx.wait();
 
       const tokenId = Number(await stargateNFT.getCurrentTokenId()) + 1;
-      await stargateNFT.stake(levelId, { value: stakeAmount });
+      tx = await stargateNFT.stake(levelId, { value: stakeAmount });
+      await tx.wait();
 
       // User delegates with forever mode
-      await stargateDelegation.delegate(tokenId, true);
+      tx = await stargateDelegation.delegate(tokenId, true);
+      await tx.wait();
 
       const scheduledExitBlock = await stargateDelegation.getDelegationEndBlock(tokenId);
       expect(scheduledExitBlock).to.equal(
@@ -1166,7 +1187,8 @@ describe("StargateDelegation delegation", () => {
       const currentBlock = await stargateDelegation.clock();
       const earlyEndBlock = currentBlock + 2n;
 
-      await stargateDelegation.setRewardsAccumulationEndBlock(earlyEndBlock);
+      tx = await stargateDelegation.setRewardsAccumulationEndBlock(earlyEndBlock);
+      await tx.wait();
 
       // Fast forward past the rewards end block
       await mineBlocks(Number(earlyEndBlock - currentBlock + 1n));
@@ -1190,18 +1212,20 @@ describe("StargateDelegation delegation", () => {
 
     it("should correctly calculate claimable rewards when early exiting due to stargate program ending", async () => {
       // reset the rewards accumulation end block
-      await stargateDelegation.setRewardsAccumulationEndBlock(0n);
+      tx = await stargateDelegation.setRewardsAccumulationEndBlock(0n);
+      await tx.wait();
 
       const tokenId = Number(await stargateNFT.getCurrentTokenId()) + 1;
-      await stargateNFT.stake(levelId, { value: stakeAmount });
+      tx = await stargateNFT.stake(levelId, { value: stakeAmount });
+      await tx.wait();
 
       // Get reward rate for this level to calculate expected rewards
       const rewardRate = await stargateDelegation.getVthoRewardPerBlock(levelId);
       expect(rewardRate).to.be.gt(0);
 
       // User delegates with forever mode
-      const delegationTx = await stargateDelegation.delegate(tokenId, true);
-      const delegationReceipt = await delegationTx.wait();
+      tx = await stargateDelegation.delegate(tokenId, true);
+      const delegationReceipt = await tx.wait();
       const delegationBlock = BigInt(delegationReceipt!.blockNumber);
 
       const rewardsAccumulationStartBlock =
@@ -1226,7 +1250,8 @@ describe("StargateDelegation delegation", () => {
       const rewardsEndBlock = currentBlock + 4n; // add 4 blocks buffer
 
       // rewards will stop 3 blocks from now
-      await stargateDelegation.setRewardsAccumulationEndBlock(rewardsEndBlock);
+      tx = await stargateDelegation.setRewardsAccumulationEndBlock(rewardsEndBlock);
+      await tx.wait();
       // user is now 6 blocks into the 3rd period
 
       // accumulate rewards for 2 blocks

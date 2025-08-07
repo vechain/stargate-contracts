@@ -10,7 +10,6 @@
         "bracketSpacing": false,
         "explicitTypes": "always",
         "semi": true,
-        "trailingComma": "none",
         "endOfLine": "lf",
         "bracketSameLine": true
       }

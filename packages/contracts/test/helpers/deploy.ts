@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import {
   MyERC1155,
   MyERC721,
@@ -12,12 +12,13 @@ import {
 import {
   deployAndUpgrade,
   deployUpgradeableWithoutInitialization,
-  initializeProxy,
+  initializeProxyAllVersions,
 } from "../../scripts/helpers";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { createLocalConfig } from "@repo/config/contracts/envs/local";
 import { deployStargateNFTLibraries } from "../../scripts/deploy/libraries";
+import { StrengthLevel } from "@repo/config/contracts/VechainNodes";
 
 interface DeployedContracts {
   legacyNodesContract: TokenAuction;
@@ -45,11 +46,14 @@ export async function getOrDeployContracts({
   }
 
   const [deployer, ...otherAccounts] = await ethers.getSigners();
+  config.CONTRACTS_ADMIN_ADDRESS = deployer.address;
 
-  // Seed otherAccounts[0..4] with 50M VET - highest node value is currently worth 15.6M VET
-  const newBalance = ethers.parseEther("50000000");
-  for (let i = 0; i < 5; i++) {
-    await setBalance(otherAccounts[i].address, newBalance);
+  if (network.name === "hardhat") {
+    // Seed otherAccounts[0..4] with 50M VET - highest node value is currently worth 15.6M VET
+    const newBalance = ethers.parseEther("50000000");
+    for (let i = 0; i < 5; i++) {
+      await setBalance(otherAccounts[i].address, newBalance);
+    }
   }
 
   // Deploy Mocked Nodes contract
@@ -90,24 +94,25 @@ export async function getOrDeployContracts({
   await vtho.waitForDeployment();
   const vthoAddress = await vtho.getAddress();
 
+  // Deploys the latest implementation of the contracts
   const {
     StargateNFTClockLib,
+    StargateNFTLevelsLib,
+    StargateNFTMintingLib,
     StargateNFTSettingsLib,
     StargateNFTTokenLib,
-    StargateNFTMintingLib,
     StargateNFTVetGeneratedVthoLib,
-    StargateNFTLevelsLib,
-  } = await deployStargateNFTLibraries({ logOutput: false });
+  } = await deployStargateNFTLibraries({ latestVersionOnly: true });
 
   const stargateNFTProxyAddress = await deployUpgradeableWithoutInitialization(
     "StargateNFT",
     {
       Clock: await StargateNFTClockLib.getAddress(),
+      Levels: await StargateNFTLevelsLib.getAddress(),
       MintingLogic: await StargateNFTMintingLib.getAddress(),
       Settings: await StargateNFTSettingsLib.getAddress(),
       Token: await StargateNFTTokenLib.getAddress(),
       VetGeneratedVtho: await StargateNFTVetGeneratedVthoLib.getAddress(),
-      Levels: await StargateNFTLevelsLib.getAddress(),
     },
     false
   );
@@ -118,60 +123,68 @@ export async function getOrDeployContracts({
     false
   );
 
-  const stargateNFT = (await initializeProxy(
-    stargateNFTProxyAddress,
+  const stargateNFT = (await initializeProxyAllVersions(
     "StargateNFT",
+    stargateNFTProxyAddress,
     [
       {
-        tokenCollectionName: "StarGate Delegator Token",
-        tokenCollectionSymbol: "SDT",
-        baseTokenURI: config.BASE_TOKEN_URI,
-        admin: config.CONTRACTS_ADMIN_ADDRESS,
-        upgrader: config.CONTRACTS_ADMIN_ADDRESS,
-        pauser: config.CONTRACTS_ADMIN_ADDRESS,
-        levelOperator: config.CONTRACTS_ADMIN_ADDRESS,
-        legacyNodes: vechainNodesMockAddress,
-        legacyLastTokenId: config.LEGACY_LAST_TOKEN_ID,
-        levelsAndSupplies: config.TOKEN_LEVELS,
-        stargateDelegation: stargateDelegationProxyAddress,
-        vthoToken: vthoAddress,
+        args: [
+          {
+            tokenCollectionName: "StarGate Delegator Token",
+            tokenCollectionSymbol: "SDT",
+            baseTokenURI: config.BASE_TOKEN_URI,
+            admin: config.CONTRACTS_ADMIN_ADDRESS,
+            upgrader: config.CONTRACTS_ADMIN_ADDRESS,
+            pauser: config.CONTRACTS_ADMIN_ADDRESS,
+            levelOperator: config.CONTRACTS_ADMIN_ADDRESS,
+            legacyNodes: vechainNodesMockAddress || config.TOKEN_AUCTION_CONTRACT_ADDRESS,
+            stargateDelegation: stargateDelegationProxyAddress,
+            legacyLastTokenId: config.LEGACY_LAST_TOKEN_ID,
+            levelsAndSupplies: config.TOKEN_LEVELS,
+            vthoToken: vthoAddress,
+          },
+        ],
+      }, // V1
+      {
+        args: [config.WHITELIST_ENTRIES_V2],
+        version: 2,
       },
     ],
-    {
-      Clock: await StargateNFTClockLib.getAddress(),
-      MintingLogic: await StargateNFTMintingLib.getAddress(),
-      Settings: await StargateNFTSettingsLib.getAddress(),
-      Token: await StargateNFTTokenLib.getAddress(),
-      VetGeneratedVtho: await StargateNFTVetGeneratedVthoLib.getAddress(),
-      Levels: await StargateNFTLevelsLib.getAddress(),
-    }
+    false
   )) as StargateNFT;
 
-  const stargateDelegation = (await initializeProxy(
-    stargateDelegationProxyAddress,
+  const stargateDelegation = (await initializeProxyAllVersions(
     "StargateDelegation",
-
+    stargateDelegationProxyAddress,
     [
       {
-        upgrader: config.CONTRACTS_ADMIN_ADDRESS,
-        admin: config.CONTRACTS_ADMIN_ADDRESS,
-        stargateNFT: await stargateNFT.getAddress(),
-        vthoToken: vthoAddress,
-        vthoRewardPerBlock: config.VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL,
-        delegationPeriod: config.DELEGATION_PERIOD_DURATION, // 10 blocks
-        operator: config.STARGATE_DELEGATION_OPERATOR_ADDRESS,
+        args: [
+          {
+            upgrader: config.CONTRACTS_ADMIN_ADDRESS,
+            admin: config.CONTRACTS_ADMIN_ADDRESS,
+            stargateNFT: stargateNFTProxyAddress,
+            vthoToken: vthoAddress,
+            vthoRewardPerBlock: config.VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL,
+            delegationPeriod: config.DELEGATION_PERIOD_DURATION,
+            operator: config.STARGATE_DELEGATION_OPERATOR_ADDRESS,
+          },
+        ],
+      }, // V1
+      {
+        args: [deployer.address],
+        version: 3,
       },
     ],
-    {}
+    false
   )) as StargateDelegation;
 
-  // Deploy NodeManagement cotntract
+  // Deploy NodeManagement contract
   const nodeManagement = (await deployAndUpgrade(
     ["NodeManagementV1", "NodeManagementV2", "NodeManagementV3"],
     [
       [await vechainNodesMock.getAddress(), deployer.address, deployer.address],
       [],
-      [await stargateNFT.getAddress()],
+      [stargateNFTProxyAddress],
     ],
     {
       versions: [undefined, 2, 3],
@@ -181,12 +194,12 @@ export async function getOrDeployContracts({
 
   if (mintVtho) {
     // Seed the contracts with VTHO
-    await vtho.mint(await stargateDelegation.getAddress(), ethers.parseEther("10000000000000000"));
-    await vtho.mint(await stargateNFT.getAddress(), ethers.parseEther("10000000000000000"));
+    await vtho.mint(stargateDelegationProxyAddress, ethers.parseEther("10000000000000000"));
+    await vtho.mint(stargateNFTProxyAddress, ethers.parseEther("10000000000000000"));
   }
 
   // Make the stargateNFT contract operator of the vechainNodesMock contract
-  await vechainNodesMock.addOperator(await stargateNFT.getAddress());
+  await vechainNodesMock.addOperator(stargateNFTProxyAddress);
 
   // Cache the deployment
   cachedDeployment = {

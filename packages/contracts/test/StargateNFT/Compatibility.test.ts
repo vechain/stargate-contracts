@@ -6,8 +6,9 @@ import { TokenLevelId, Level } from "@repo/config/contracts/StargateNFT";
 import { createLocalConfig } from "@repo/config/contracts/envs/local";
 import { ContractsConfig } from "@repo/config/contracts/type";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { TransactionResponse } from "ethers";
 
-describe("StargateNFT backwards compatibility", () => {
+describe("shard6: StargateNFT Compatibility", () => {
   describe("TokenAuction", () => {
     const levelId = TokenLevelId.Strength;
 
@@ -19,7 +20,9 @@ describe("StargateNFT backwards compatibility", () => {
     let token1Id: number;
     let token1LevelSpec: Level;
 
-    before(async () => {
+    let tx: TransactionResponse;
+
+    beforeEach(async () => {
       config = createLocalConfig();
       const { stargateNFTContract, otherAccounts } = await getOrDeployContracts({
         forceDeploy: true,
@@ -36,9 +39,10 @@ describe("StargateNFT backwards compatibility", () => {
       token1LevelSpec = (await stargateNFT.getLevel(levelId)) as unknown as Level;
 
       // Stake and mint
-      await stargateNFT.connect(user1).stake(levelId, {
+      tx = await stargateNFT.connect(user1).stake(levelId, {
         value: token1LevelSpec.vetAmountRequiredToStake,
       });
+      await tx.wait();
     });
 
     it("should start testing with expected state", async () => {

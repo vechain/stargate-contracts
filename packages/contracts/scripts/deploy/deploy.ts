@@ -6,9 +6,9 @@ import {
   addToken,
   parseTokenMetadata,
   deployUpgradeableWithoutInitialization,
-  initializeProxy,
+  initializeProxyAllVersions,
 } from "../helpers";
-import { StargateNFT, StargateDelegation, NodeManagementV2 } from "../../typechain-types";
+import { StargateNFT, StargateDelegation, NodeManagementV3 } from "../../typechain-types";
 import { HttpNetworkConfig } from "hardhat/types";
 import { StrengthLevel } from "@repo/config/contracts/VechainNodes";
 import { deployStargateNFTLibraries } from "./libraries";
@@ -107,28 +107,28 @@ export async function deployAll(config: ContractsConfig): Promise<DeployedContra
   console.log("Deploying the StargateNFT libraries...");
   const {
     StargateNFTClockLib,
+    StargateNFTLevelsLib,
+    StargateNFTMintingLib,
     StargateNFTSettingsLib,
     StargateNFTTokenLib,
-    StargateNFTMintingLib,
     StargateNFTVetGeneratedVthoLib,
-    StargateNFTLevelsLib,
-  } = await deployStargateNFTLibraries({ logOutput: true });
+  } = await deployStargateNFTLibraries({ logOutput: true, latestVersionOnly: true });
 
-  console.log("Deploying StargateNFT...");
+  console.log("Deploying latest implementation of StargateNFT...");
   const stargateNFTProxyAddress = await deployUpgradeableWithoutInitialization(
     "StargateNFT",
     {
       Clock: await StargateNFTClockLib.getAddress(),
+      Levels: await StargateNFTLevelsLib.getAddress(),
       MintingLogic: await StargateNFTMintingLib.getAddress(),
       Settings: await StargateNFTSettingsLib.getAddress(),
       Token: await StargateNFTTokenLib.getAddress(),
       VetGeneratedVtho: await StargateNFTVetGeneratedVthoLib.getAddress(),
-      Levels: await StargateNFTLevelsLib.getAddress(),
     },
     true
   );
 
-  console.log(`Deploying StargateDelegation...`);
+  console.log(`Deploying latest implementation of StargateDelegation...`);
   const stargateDelegationProxyAddress = await deployUpgradeableWithoutInitialization(
     "StargateDelegation",
     {},
@@ -136,53 +136,66 @@ export async function deployAll(config: ContractsConfig): Promise<DeployedContra
   );
 
   console.log("Initializing proxies...");
-  const stargateNFT = (await initializeProxy(
-    stargateNFTProxyAddress,
-    "StargateNFT",
-    [
-      {
-        tokenCollectionName: "StarGate Delegator Token",
-        tokenCollectionSymbol: "SDT",
-        baseTokenURI: config.BASE_TOKEN_URI,
-        admin: config.CONTRACTS_ADMIN_ADDRESS,
-        upgrader: config.CONTRACTS_ADMIN_ADDRESS,
-        pauser: config.CONTRACTS_ADMIN_ADDRESS,
-        levelOperator: config.CONTRACTS_ADMIN_ADDRESS,
-        legacyNodes: vechainNodesMockAddress || config.TOKEN_AUCTION_CONTRACT_ADDRESS,
-        stargateDelegation: stargateDelegationProxyAddress,
-        legacyLastTokenId: config.LEGACY_LAST_TOKEN_ID,
-        levelsAndSupplies: config.TOKEN_LEVELS,
-        vthoToken: vthoAddress,
-      }, // TODO: Change before mainnet deployment
-    ],
-    {
-      Clock: await StargateNFTClockLib.getAddress(),
-      MintingLogic: await StargateNFTMintingLib.getAddress(),
-      Settings: await StargateNFTSettingsLib.getAddress(),
-      Token: await StargateNFTTokenLib.getAddress(),
-      VetGeneratedVtho: await StargateNFTVetGeneratedVthoLib.getAddress(),
-      Levels: await StargateNFTLevelsLib.getAddress(),
-    }
-  )) as StargateNFT;
-  console.log("StargateNFT initialized");
 
-  const stargateDelegation = (await initializeProxy(
-    stargateDelegationProxyAddress,
-    "StargateDelegation",
+  // For mainnet, grab WHITELIST_ENTRIES_V2 from config, otherwise set dummy whitelist entry
+  const initV2Data = config.WHITELIST_ENTRIES_V2.length
+    ? config.WHITELIST_ENTRIES_V2
+    : [{ owner: otherAccounts[7].address, tokenId: 777, levelId: StrengthLevel.MjolnirX }];
+
+  (await initializeProxyAllVersions(
+    "StargateNFT",
+    stargateNFTProxyAddress,
     [
       {
-        upgrader: config.CONTRACTS_ADMIN_ADDRESS,
-        admin: config.CONTRACTS_ADMIN_ADDRESS,
-        stargateNFT: await stargateNFT.getAddress(),
-        vthoToken: vthoAddress,
-        vthoRewardPerBlock: config.VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL,
-        delegationPeriod: config.DELEGATION_PERIOD_DURATION,
-        operator: config.STARGATE_DELEGATION_OPERATOR_ADDRESS,
+        args: [
+          {
+            tokenCollectionName: "StarGate Delegator Token",
+            tokenCollectionSymbol: "SDT",
+            baseTokenURI: config.BASE_TOKEN_URI,
+            admin: config.CONTRACTS_ADMIN_ADDRESS,
+            upgrader: config.CONTRACTS_ADMIN_ADDRESS,
+            pauser: config.CONTRACTS_ADMIN_ADDRESS,
+            levelOperator: config.CONTRACTS_ADMIN_ADDRESS,
+            legacyNodes: vechainNodesMockAddress || config.TOKEN_AUCTION_CONTRACT_ADDRESS,
+            stargateDelegation: stargateDelegationProxyAddress,
+            legacyLastTokenId: config.LEGACY_LAST_TOKEN_ID,
+            levelsAndSupplies: config.TOKEN_LEVELS,
+            vthoToken: vthoAddress,
+          },
+        ],
+      }, // V1
+      {
+        args: [initV2Data],
+        version: 2,
       },
     ],
-    {}
+    true
+  )) as StargateNFT;
+
+  (await initializeProxyAllVersions(
+    "StargateDelegation",
+    stargateDelegationProxyAddress,
+    [
+      {
+        args: [
+          {
+            upgrader: config.CONTRACTS_ADMIN_ADDRESS,
+            admin: config.CONTRACTS_ADMIN_ADDRESS,
+            stargateNFT: stargateNFTProxyAddress,
+            vthoToken: vthoAddress,
+            vthoRewardPerBlock: config.VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL,
+            delegationPeriod: config.DELEGATION_PERIOD_DURATION,
+            operator: config.STARGATE_DELEGATION_OPERATOR_ADDRESS,
+          },
+        ],
+      }, // V1
+      {
+        args: [deployer.address],
+        version: 3,
+      },
+    ],
+    true
   )) as StargateDelegation;
-  console.log("StargateDelegation initialized");
 
   // WARNING: The NodeManagement contract is already deployed in production, with current version 2,
   // so we deploy it only on testnet and local, while on mainnet we upgrade to version 3
@@ -198,13 +211,13 @@ export async function deployAll(config: ContractsConfig): Promise<DeployedContra
           deployer.address,
         ],
         [],
-        [await stargateNFT.getAddress()],
+        [stargateNFTProxyAddress],
       ],
       {
         versions: [undefined, 2, 3],
         logOutput: true,
       }
-    )) as NodeManagementV2;
+    )) as NodeManagementV3;
     nodeManagementContractAddress = await nodeManagement.getAddress();
   } else {
     nodeManagementContractAddress = config.NODE_MANAGEMENT_CONTRACT_ADDRESS;
@@ -246,20 +259,20 @@ export async function deployAll(config: ContractsConfig): Promise<DeployedContra
 
     // Set Stargate NFT as operator of Legacy Token Auction
     console.log("[3/4]: set Stargate NFT as operator of Legacy Token Auction...");
-    await vechainNodesMock.addOperator(await stargateNFT.getAddress());
+    await vechainNodesMock.addOperator(stargateNFTProxyAddress);
 
     console.log("[4/4]: Trying to deposit 1000 VTHO to Stargate Delegation...");
     try {
       const vthoToken = await ethers.getContractAt("MyERC20", vthoAddress);
       if (network.name === "hardhat") {
         await vthoToken.mint(
-          stargateDelegation.getAddress(),
+          stargateDelegationProxyAddress,
           ethers.parseUnits("1000000000000000000000")
         );
       } else if (network.name === "vechain_testnet" || network.name === "vechain_solo") {
         await vthoToken.transferFrom(
           deployer.address,
-          stargateDelegation.getAddress(),
+          stargateDelegationProxyAddress,
           ethers.parseUnits("1000000000000000000000")
         );
       }
@@ -284,8 +297,8 @@ export async function deployAll(config: ContractsConfig): Promise<DeployedContra
     ERC1155Mock: erc1155MockAddress || ethers.ZeroAddress,
     NodeManagement: nodeManagementContractAddress,
     // Below addresses are deployed on all networks
-    StargateNFT: await stargateNFT.getAddress(),
-    StargateDelegation: await stargateDelegation.getAddress(),
+    StargateNFT: stargateNFTProxyAddress,
+    StargateDelegation: stargateDelegationProxyAddress,
   };
   console.log("Contracts", contractAddresses);
 

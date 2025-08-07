@@ -1,7 +1,7 @@
 import { getConfig } from "@repo/config";
 import { upgradeProxy } from "../../../helpers";
 import { EnvConfig } from "@repo/config/contracts";
-import { StargateDelegation } from "../../../../typechain-types";
+import { StargateDelegationV2 } from "../../../../typechain-types";
 import { network } from "hardhat";
 
 async function main() {
@@ -16,14 +16,14 @@ async function main() {
   );
 
   const stargateDelegationV2 = (await upgradeProxy(
-    "StargateDelegation",
-    "StargateDelegation",
+    "StargateDelegationV1",
+    "StargateDelegationV2",
     config.stargateDelegationContractAddress,
     [],
     {
       version: 2,
     }
-  )) as StargateDelegation;
+  )) as StargateDelegationV2;
 
   console.log(`StargateDelegation upgraded`);
 

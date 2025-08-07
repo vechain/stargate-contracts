@@ -72,7 +72,7 @@ export async function deployMainnetRelease(
 
   console.log(`Deploying StargateDelegation...`);
   const stargateDelegationProxyAddress = await deployUpgradeableWithoutInitialization(
-    "StargateDelegation",
+    "StargateDelegationV1",
     {},
     true
   );

@@ -1,20 +1,19 @@
-import { BaseContract, ContractFactory, Interface } from "ethers";
+import { BaseContract, Contract, ContractFactory, Interface } from "ethers";
 import { ethers } from "hardhat";
 import { getImplementationAddress } from "@openzeppelin/upgrades-core";
 import { AddressUtils } from "@repo/utils";
 import { DeployUpgradeOptions } from "./type";
 
 export const deployProxy = async (
-  contractNameOrFactory: string | ContractFactory,
+  contractName: string,
   args: any[],
   libraries: { [libraryName: string]: string } = {},
   logOutput: boolean = false,
-  version?: number,
+  version?: number
 ): Promise<BaseContract> => {
-  const { factory: Contract, name: contractName } = await getContractNameAndFactory(
-    contractNameOrFactory,
-    libraries,
-  );
+  const Contract = await ethers.getContractFactory(contractName, {
+    libraries: libraries,
+  });
   // Deploy the implementation contract
   const implementation = await Contract.deploy();
   await implementation.waitForDeployment();
@@ -24,18 +23,18 @@ export const deployProxy = async (
   const proxyFactory = await ethers.getContractFactory("StargateProxy");
   const proxy = await proxyFactory.deploy(
     await implementation.getAddress(),
-    getInitializerData(Contract.interface, args, version),
+    getInitializerData(Contract.interface, args, version)
   );
   await proxy.waitForDeployment();
   logOutput && console.log(`${contractName} proxy: ${await proxy.getAddress()}`);
 
   const newImplementationAddress = await getImplementationAddress(
     ethers.provider,
-    await proxy.getAddress(),
+    await proxy.getAddress()
   );
   if (!AddressUtils.compareAddresses(newImplementationAddress, await implementation.getAddress())) {
     throw new Error(
-      `The implementation address is not the one expected: ${newImplementationAddress} !== ${await implementation.getAddress()}`,
+      `The implementation address is not the one expected: ${newImplementationAddress} !== ${await implementation.getAddress()}`
     );
   }
 
@@ -44,14 +43,14 @@ export const deployProxy = async (
 };
 
 export const deployUpgradeableWithoutInitialization = async (
-  contractNameOrFactory: string | ContractFactory,
+  contractName: string,
   libraries: { [libraryName: string]: string } = {},
-  logOutput: boolean = false,
+  logOutput: boolean = false
 ): Promise<string> => {
-  const { factory: Contract, name: contractName } = await getContractNameAndFactory(
-    contractNameOrFactory,
-    libraries,
-  );
+  // Deploy the implementation contract
+  const Contract = await ethers.getContractFactory(contractName, {
+    libraries: libraries,
+  });
   const implementation = await Contract.deploy();
   await implementation.waitForDeployment();
   logOutput && console.log(`${contractName} impl.: ${await implementation.getAddress()}`);
@@ -64,11 +63,11 @@ export const deployUpgradeableWithoutInitialization = async (
 
   const newImplementationAddress = await getImplementationAddress(
     ethers.provider,
-    await proxy.getAddress(),
+    await proxy.getAddress()
   );
   if (!AddressUtils.compareAddresses(newImplementationAddress, await implementation.getAddress())) {
     throw new Error(
-      `The implementation address is not the one expected: ${newImplementationAddress} !== ${await implementation.getAddress()}`,
+      `The implementation address is not the one expected: ${newImplementationAddress} !== ${await implementation.getAddress()}`
     );
   }
 
@@ -78,15 +77,16 @@ export const deployUpgradeableWithoutInitialization = async (
 
 export const initializeProxy = async (
   proxyAddress: string,
-  contractNameOrFactory: string | ContractFactory,
+  contractName: string,
   args: any[],
   libraries: { [libraryName: string]: string } = {},
-  version?: number,
+  version?: number
 ): Promise<BaseContract> => {
-  const { factory: Contract, name: contractName } = await getContractNameAndFactory(
-    contractNameOrFactory,
-    libraries,
-  );
+  // Get the ContractFactory
+  const Contract = await ethers.getContractFactory(contractName, {
+    libraries: libraries,
+  });
+
   // Prepare the initializer data using getInitializerData
   const initializerData = getInitializerData(Contract.interface, args, version);
 
@@ -105,7 +105,7 @@ export const initializeProxy = async (
 
 export const upgradeProxy = async (
   previousVersionContractName: string,
-  newVersionContractNameOrFactory: string | ContractFactory,
+  newVersionContractName: string,
   proxyAddress: string,
   args: any[] = [],
   options?: {
@@ -113,36 +113,45 @@ export const upgradeProxy = async (
     libraries?: { [libraryName: string]: string };
     logOutput?: boolean;
     forceInitialization?: boolean;
-  },
+  }
 ): Promise<BaseContract> => {
-  const { factory: Contract, name: contractName } = await getContractNameAndFactory(
-    newVersionContractNameOrFactory,
-    options?.libraries,
+  // Get the current implementation contract
+  const currentImplementationContract = await ethers.getContractAt(
+    previousVersionContractName,
+    proxyAddress
   );
 
+  // Check if the signer has the UPGRADER_ROLE
+  const signer = (await ethers.getSigners())[0];
+  await revertIfSignerIsNotUpgrader(currentImplementationContract, await signer.getAddress());
+
+  // Deploy the implementation contract
+  const Contract = await ethers.getContractFactory(newVersionContractName, {
+    libraries: options?.libraries,
+  });
   const implementation = await Contract.deploy();
   await implementation.waitForDeployment();
 
-  const currentImplementationContract = await ethers.getContractAt(
-    previousVersionContractName,
-    proxyAddress,
-  );
-
   options?.logOutput &&
-    console.log(`${contractName} impl.: ${await implementation.getAddress()}`);
+    console.log(`${newVersionContractName} impl.: ${await implementation.getAddress()}`);
 
-  const tx = await currentImplementationContract.upgradeToAndCall(
-    await implementation.getAddress(),
+  // Prepare the initializer data, if args are provided or forceInitialization is true
+  const initializerData =
     args.length > 0 || options?.forceInitialization
       ? getInitializerData(Contract.interface, args, options?.version)
-      : "0x",
+      : "0x";
+
+  // Perform the upgrade
+  const tx = await currentImplementationContract.upgradeToAndCall(
+    await implementation.getAddress(),
+    initializerData
   );
   await tx.wait();
 
   const newImplementationAddress = await getImplementationAddress(ethers.provider, proxyAddress);
   if (!AddressUtils.compareAddresses(newImplementationAddress, await implementation.getAddress())) {
     throw new Error(
-      `The implementation address is not the one expected: ${newImplementationAddress} !== ${await implementation.getAddress()}`,
+      `The implementation address is not the one expected: ${newImplementationAddress} !== ${await implementation.getAddress()}`
     );
   }
   return Contract.attach(proxyAddress);
@@ -151,7 +160,7 @@ export const upgradeProxy = async (
 export const deployAndUpgrade = async (
   contractNames: string[],
   args: any[][],
-  options: DeployUpgradeOptions,
+  options: DeployUpgradeOptions
 ): Promise<BaseContract> => {
   if (contractNames.length === 0) throw new Error("No contracts to deploy");
 
@@ -173,7 +182,7 @@ export const deployAndUpgrade = async (
     contractArgs,
     options?.libraries?.[0],
     options.logOutput,
-    options.versions?.[0],
+    options.versions?.[0]
   );
 
   // 2. Upgrade the proxy to the next versions
@@ -192,11 +201,42 @@ export const deployAndUpgrade = async (
         libraries: options.libraries?.[i],
         logOutput: options.logOutput,
         forceInitialization: options.forceInitialization?.[i],
-      },
+      }
     );
   }
 
   return proxy;
+};
+
+export const initializeProxyAllVersions = async (
+  contractName: string,
+  proxyAddress: string,
+  initializerCalls: { version?: number; args: any[] }[],
+  logOutput: boolean = false
+): Promise<BaseContract> => {
+  // Get contract instance
+  const Contract = await ethers.getContractAt(contractName, proxyAddress);
+
+  // Get the signer
+  const signer = (await ethers.getSigners())[0];
+
+  // Call all initializers
+  let upgraderCheck = false;
+  for (const { version, args } of initializerCalls) {
+    logOutput && console.log(`Initializing ${contractName} V${version ?? "1"}...`);
+
+    if (version !== undefined && upgraderCheck === false) {
+      await revertIfSignerIsNotUpgrader(Contract, await signer.getAddress());
+      upgraderCheck = true;
+    }
+
+    const data = getInitializerData(Contract.interface, args, version);
+    const tx = await signer.sendTransaction({ to: proxyAddress, data, gasLimit: 10_000_000 });
+    await tx.wait();
+  }
+
+  // Return the contract instance
+  return Contract;
 };
 
 export function getInitializerData(contractInterface: Interface, args: any[], version?: number) {
@@ -209,21 +249,10 @@ export function getInitializerData(contractInterface: Interface, args: any[], ve
   return contractInterface.encodeFunctionData(fragment, args);
 }
 
-async function getContractNameAndFactory(
-  contractNameOrFactory: string | ContractFactory,
-  libraries: { [libraryName: string]: string } = {},
-): Promise<{ factory: ContractFactory; name: string }> {
-  if (typeof contractNameOrFactory === "string") {
-    // If contractName is a string, get the ContractFactory
-    return {
-      factory: await ethers.getContractFactory(contractNameOrFactory, { libraries }),
-      name: contractNameOrFactory,
-    };
-  } else {
-    // If contractNameOrFactory is a ContractFactory, use it directly
-    return {
-      factory: contractNameOrFactory,
-      name: contractNameOrFactory.constructor.name,
-    };
+async function revertIfSignerIsNotUpgrader(contract: Contract, signerAddress: string) {
+  const upgraderRole = ethers.keccak256(ethers.toUtf8Bytes("UPGRADER_ROLE"));
+  const hasUpgraderRole = await contract.hasRole(upgraderRole, signerAddress);
+  if (!hasUpgraderRole) {
+    throw new Error(`Signer ${signerAddress} is missing UPGRADER_ROLE. Cancelling upgrade.`);
   }
 }

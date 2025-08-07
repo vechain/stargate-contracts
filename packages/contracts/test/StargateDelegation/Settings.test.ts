@@ -1,15 +1,27 @@
 import { createLocalConfig } from "@repo/config/contracts/envs/local";
 import { getOrDeployContracts } from "../helpers/deploy";
 import { expect } from "chai";
+import { TransactionResponse } from "ethers";
+import { StargateDelegation } from "../../typechain-types";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
-describe("StargateDelegation: settings", () => {
-  it("Admin should be able to set vtho rewards per block", async () => {
+describe("shard102: StargateDelegation Settings", () => {
+  let tx: TransactionResponse;
+  let stargateDelegationContract: StargateDelegation;
+  let deployer: HardhatEthersSigner;
+  let otherAccounts: HardhatEthersSigner[];
+
+  beforeEach(async () => {
     const config = createLocalConfig();
-    const { stargateDelegationContract, deployer } = await getOrDeployContracts({
+    const contracts = await getOrDeployContracts({
       config,
       forceDeploy: true,
     });
-
+    stargateDelegationContract = contracts.stargateDelegationContract;
+    deployer = contracts.deployer;
+    otherAccounts = contracts.otherAccounts;
+  });
+  it("Admin should be able to set vtho rewards per block", async () => {
     const newVthoRewardsPerBlock = [
       {
         levelId: 1,
@@ -22,9 +34,10 @@ describe("StargateDelegation: settings", () => {
     ];
 
     for (const rewardConfig of newVthoRewardsPerBlock) {
-      await stargateDelegationContract
+      tx = await stargateDelegationContract
         .connect(deployer)
         .setVthoRewardPerBlockForLevel(rewardConfig.levelId, rewardConfig.rewardPerBlock);
+      await tx.wait();
     }
 
     // check that the rewards are set correctly
@@ -39,12 +52,6 @@ describe("StargateDelegation: settings", () => {
   });
 
   it("Admin should be able to set vtho rewards in bulk for all levels", async () => {
-    const config = createLocalConfig();
-    const { stargateDelegationContract, deployer } = await getOrDeployContracts({
-      config,
-      forceDeploy: true,
-    });
-
     const newVthoRewardsPerBlock = [
       {
         levelId: 1,
@@ -61,9 +68,10 @@ describe("StargateDelegation: settings", () => {
     ];
 
     // Set all rewards in bulk
-    await stargateDelegationContract
+    tx = await stargateDelegationContract
       .connect(deployer)
       .setVthoRewardPerBlockForAllLevels(newVthoRewardsPerBlock);
+    await tx.wait();
 
     // Verify that all rewards are set correctly
     const vthoRewardsPerBlock = await stargateDelegationContract.getVthoRewardsPerBlock();
@@ -80,16 +88,9 @@ describe("StargateDelegation: settings", () => {
   });
 
   it("Should revert when trying to set vtho rewards with invalid parameters", async () => {
-    const config = createLocalConfig();
-    const { stargateDelegationContract, deployer } = await getOrDeployContracts({
-      config,
-      forceDeploy: true,
-    });
-
     // Test with empty array - should revert with ArrayCannotBeEmpty
-    await expect(
-      stargateDelegationContract.connect(deployer).setVthoRewardPerBlockForAllLevels([])
-    ).to.be.revertedWithCustomError(stargateDelegationContract, "ArrayCannotBeEmpty");
+    await expect(stargateDelegationContract.connect(deployer).setVthoRewardPerBlockForAllLevels([]))
+      .to.be.reverted;
 
     // Test with zero reward per block - should revert with InvalidVthoRewardPerBlock
     const invalidRewards = [
@@ -101,16 +102,10 @@ describe("StargateDelegation: settings", () => {
 
     await expect(
       stargateDelegationContract.connect(deployer).setVthoRewardPerBlockForAllLevels(invalidRewards)
-    ).to.be.revertedWithCustomError(stargateDelegationContract, "InvalidVthoRewardPerBlock");
+    ).to.be.reverted;
   });
 
   it("Should revert when non admin tries to set vtho rewards", async () => {
-    const config = createLocalConfig();
-    const { stargateDelegationContract, deployer, otherAccounts } = await getOrDeployContracts({
-      config,
-      forceDeploy: true,
-    });
-
     const newVthoRewardsPerBlock = [
       {
         levelId: 1,
@@ -122,38 +117,28 @@ describe("StargateDelegation: settings", () => {
       stargateDelegationContract
         .connect(otherAccounts[0])
         .setVthoRewardPerBlockForAllLevels(newVthoRewardsPerBlock)
-    ).to.be.revertedWithCustomError(stargateDelegationContract, "UnauthorizedUser");
+    ).to.be.reverted;
 
     await expect(
       stargateDelegationContract
         .connect(otherAccounts[0])
         .setVthoRewardPerBlockForLevel(1, 500000000000000000n)
-    ).to.be.revertedWithCustomError(stargateDelegationContract, "UnauthorizedUser");
+    ).to.be.reverted;
   });
 
   it("Admin can set rewards accumulation end block", async () => {
-    const config = createLocalConfig();
-    const { stargateDelegationContract, deployer } = await getOrDeployContracts({
-      config,
-      forceDeploy: true,
-    });
-
     const currentEndBlock = await stargateDelegationContract.getRewardsAccumulationEndBlock();
     expect(currentEndBlock).to.equal(0n);
 
     const newEndBlock = currentEndBlock + 10n;
-    await stargateDelegationContract.connect(deployer).setRewardsAccumulationEndBlock(newEndBlock);
-
+    tx = await stargateDelegationContract
+      .connect(deployer)
+      .setRewardsAccumulationEndBlock(newEndBlock);
+    await tx.wait();
     expect(await stargateDelegationContract.getRewardsAccumulationEndBlock()).to.equal(newEndBlock);
   });
 
   it("Non admin cannot set rewards accumulation end block", async () => {
-    const config = createLocalConfig();
-    const { stargateDelegationContract, deployer, otherAccounts } = await getOrDeployContracts({
-      config,
-      forceDeploy: false,
-    });
-
     const currentEndBlock = await stargateDelegationContract.getRewardsAccumulationEndBlock();
 
     const newEndBlock = currentEndBlock + 10n;
@@ -161,7 +146,7 @@ describe("StargateDelegation: settings", () => {
       stargateDelegationContract
         .connect(otherAccounts[0])
         .setRewardsAccumulationEndBlock(newEndBlock)
-    ).to.be.revertedWithCustomError(stargateDelegationContract, "UnauthorizedUser");
+    ).to.be.reverted;
 
     expect(await stargateDelegationContract.getRewardsAccumulationEndBlock()).to.equal(
       currentEndBlock

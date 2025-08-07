@@ -49,6 +49,18 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 /// - Removed the extra block on top of currentDelegationPeriodEndBlock when requesting delegation exit
 /// - Added an external function to return the last completed delegation period end block for a given NFT
 ///   (calculateLastCompletedPeriodEndBlock)
+/// ===================== VERSION 3 ===================== //
+/// This version provides a way for users that lost rewards in the v1 implementation (fixed in version 2) to claim
+/// those rewards.
+/// Storage changes: added a new lostRewards mapping.
+/// Changes:
+/// - Added a new role LOST_REWARDS_WHITELISTER_ROLE, which allows the whitelister to seed the lostRewards mapping with users
+/// that are eligible to claim lost rewards.
+/// - Now claimableRewards, accumulatedRewards and claimRewards functions will check also for lost rewards not only for delegation rewards.
+/// - Added a separate function claimLostRewards, that can be used by users that already burned their NFTs, to claim lost rewards.
+/// - The claimRewards function will not revert anymore if no rewards are claimable, but will just end early.
+/// - Added admin functions to add and remove lost rewards for users.
+/// - Renamed the _claimRewards function to _claimDelegationRewards, to avoid confusion with the new claimLostRewards function.
 contract StargateDelegation is
     AccessControlUpgradeable,
     ReentrancyGuardUpgradeable,
@@ -59,6 +71,8 @@ contract StargateDelegation is
 
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+    bytes32 public constant LOST_REWARDS_WHITELISTER_ROLE =
+        keccak256("LOST_REWARDS_WHITELISTER_ROLE");
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -78,6 +92,8 @@ contract StargateDelegation is
         // delegation parameters
         mapping(uint256 tokenId => uint256) rewardsAccumulationStartBlock; // block when the user can start accumulating rewards
         mapping(uint256 tokenId => uint256) delegationEndBlock; // block number when the user wants to end the delegation, it will be INFINITY if the user wants to delegate forever
+        // v3 storage additions
+        mapping(address user => mapping(uint256 tokenId => uint256 amount)) lostRewards; // amount of rewards lost due to the claim bug in version 1 of the contract
     }
 
     // keccak256(abi.encode(uint256(keccak256("storage.StargateDelegation")) - 1)) & ~bytes32(uint256(0xff))
@@ -97,7 +113,7 @@ contract StargateDelegation is
     /// @notice Returns the version of the contract, manually updated with each upgrade
     /// @return version - the version of the contract
     function version() public pure returns (uint256) {
-        return 2;
+        return 3;
     }
 
     struct StargateDelegationInitParams {
@@ -170,6 +186,18 @@ contract StargateDelegation is
         }
     }
 
+    /// @notice Initializes the contract for version 3
+    /// @param _lostRewardsWhitelister - the address of the lost rewards whitelister
+    function initializeV3(
+        address _lostRewardsWhitelister
+    ) external reinitializer(3) onlyRole(UPGRADER_ROLE) {
+        if (_lostRewardsWhitelister == address(0)) {
+            revert AddressCannotBeZero();
+        }
+
+        _grantRole(LOST_REWARDS_WHITELISTER_ROLE, _lostRewardsWhitelister);
+    }
+
     // ---------- Modifiers ------------ //
 
     /// @notice Modifier to check if the user has the required role or is the DEFAULT_ADMIN_ROLE
@@ -223,8 +251,8 @@ contract StargateDelegation is
         // If user has not claimed his previous rewards, claim them,
         // so we can erase the states (delegationEndBlock, rewardsAccumulationStartBlock)
         // of the previous delegation safely
-        if (claimableRewards(_tokenId) > 0) {
-            _claimRewards(_tokenId);
+        if (_claimableDelegationRewards($, _tokenId) > 0) {
+            _claimDelegationRewards($, _tokenId);
         }
 
         // Check if the NFT level has a reward rate set
@@ -289,23 +317,47 @@ contract StargateDelegation is
         emit DelegationExitRequested(_tokenId, $.delegationEndBlock[_tokenId]);
     }
 
-    /// @notice Claims the rewards for a given NFT
+    /// @notice Claims the lost rewards for a given owner of an NFT
+    /// @dev This function can be triggered for users that already burned their NFTs,
+    /// so they can still claim the lost rewards.
+    /// @param _owner - the owner of the NFT
+    /// @param _tokenId - the tokenId of the NFT
+    function claimLostRewards(address _owner, uint256 _tokenId) external nonReentrant {
+        StargateDelegationStorage storage $ = _getStargateDelegationStorage();
+
+        if ($.lostRewards[_owner][_tokenId] == 0) {
+            revert NoLostRewardsToClaim(_owner, _tokenId);
+        }
+
+        _claimLostRewards($, _owner, _tokenId);
+    }
+
+    /// @notice Claims the rewards for a given NFT and the lost rewards (if any)
     /// @dev Rewards claiming can be triggered by anyone, but the rewards will be sent to the owner of the NFT.
     /// @param _tokenId - the tokenId of the NFT
     function claimRewards(uint256 _tokenId) public nonReentrant {
-        _claimRewards(_tokenId);
+        StargateDelegationStorage storage $ = _getStargateDelegationStorage();
+
+        _claimDelegationRewards($, _tokenId);
+
+        // Claim the lost rewards for the current owner of the NFT (if any)
+        address owner = $.stargateNFT.ownerOf(_tokenId);
+        _claimLostRewards($, owner, _tokenId);
     }
 
     /// @notice Internal function to claim the rewards for a given NFT
     /// @dev This function is used to claim the rewards for a given NFT
     /// @param _tokenId - the tokenId of the NFT
-    function _claimRewards(uint256 _tokenId) internal {
-        StargateDelegationStorage storage $ = _getStargateDelegationStorage();
-
+    function _claimDelegationRewards(
+        StargateDelegationStorage storage $,
+        uint256 _tokenId
+    ) internal {
         // Get the amount of rewards that the user can claim
-        uint256 amountToClaim = claimableRewards(_tokenId);
+        uint256 amountToClaim = _claimableDelegationRewards($, _tokenId);
         if (amountToClaim == 0) {
-            revert NoRewardsToClaim(_tokenId);
+            // If no rewards are claimable, we return early instead of reverting
+            // so the user can claim the lost rewards from the claimRewards function
+            return;
         }
 
         // Check if the contract has enough VTHO balance to send the rewards
@@ -327,6 +379,34 @@ contract StargateDelegation is
         $.vthoToken.safeTransfer(recipient, amountToClaim);
 
         emit DelegationRewardsClaimed(_tokenId, amountToClaim, msg.sender, recipient);
+    }
+
+    /// @notice Internal function to claim the lost rewards for a given owner of an NFT
+    /// @dev If no lost rewards are found, the function does nothing. It will emit a DelegationRewardsClaimed event
+    /// since those were delegation rewards that were not claimed due to a bug in the previous version of the contract.
+    /// @param _owner - the owner of the NFT
+    /// @param _tokenId - the tokenId of the NFT
+    function _claimLostRewards(
+        StargateDelegationStorage storage $,
+        address _owner,
+        uint256 _tokenId
+    ) internal {
+        if ($.lostRewards[_owner][_tokenId] == 0) {
+            return;
+        }
+
+        uint256 amount = $.lostRewards[_owner][_tokenId];
+
+        // setting to zero to avoid double claiming
+        $.lostRewards[_owner][_tokenId] = 0;
+
+        $.vthoToken.safeTransfer(_owner, amount);
+
+        // Emit a DelegationRewardsClaimed event for the lost rewards as well
+        emit DelegationRewardsClaimed(_tokenId, amount, msg.sender, _owner);
+
+        // Emit a LostRewardsClaimed event as well, so we can track how many claimed
+        emit LostRewardsClaimed(_owner, _tokenId, msg.sender, amount);
     }
 
     // ---------- Admin Setters ---------- //
@@ -382,6 +462,46 @@ contract StargateDelegation is
     ) external onlyRoleOrAdmin(OPERATOR_ROLE) {
         _getStargateDelegationStorage().rewardsAccumulationEndBlock = _rewardsAccumulationEndBlock;
         emit RewardsAccumulationEndBlockSet(_rewardsAccumulationEndBlock);
+    }
+
+    /// @notice Adds lost rewards for a given owner of an NFT
+    /// @dev This function is used to whitelist specific users to receive a reward of VTHO that they earned
+    /// but that was lost due to a bug in version 1 of the contract.
+    /// @param _owners - the owners of the NFTs
+    /// @param _tokenIds - the tokenIds of the NFTs
+    /// @param _amounts - the amounts of lost rewards
+    function addLostRewards(
+        address[] memory _owners,
+        uint256[] memory _tokenIds,
+        uint256[] memory _amounts
+    ) external onlyRole(LOST_REWARDS_WHITELISTER_ROLE) {
+        require(
+            _owners.length == _tokenIds.length && _owners.length == _amounts.length,
+            "StargateDelegation: owners, tokenIds and amounts must have the same length"
+        );
+
+        StargateDelegationStorage storage $ = _getStargateDelegationStorage();
+        for (uint256 i; i < _owners.length; i++) {
+            $.lostRewards[_owners[i]][_tokenIds[i]] = _amounts[i];
+            emit LostRewardsAdded(_owners[i], _tokenIds[i], _amounts[i]);
+        }
+    }
+
+    /// @notice Removes lost rewards for a given owner of an NFT
+    /// @dev To use in case of a mistake in the whitelisting process.
+    /// @param _owner - the owner of the NFT
+    /// @param _tokenId - the tokenId of the NFT
+    function removeLostRewards(
+        address _owner,
+        uint256 _tokenId
+    ) external onlyRole(LOST_REWARDS_WHITELISTER_ROLE) {
+        StargateDelegationStorage storage $ = _getStargateDelegationStorage();
+        if ($.lostRewards[_owner][_tokenId] == 0) {
+            return;
+        }
+        uint256 amount = $.lostRewards[_owner][_tokenId];
+        $.lostRewards[_owner][_tokenId] = 0;
+        emit LostRewardsRemoved(_owner, _tokenId, amount);
     }
 
     // ---------- Getters ---------- //
@@ -511,7 +631,7 @@ contract StargateDelegation is
             ((completedDelegationPeriods + 1) * $.delegationPeriod);
     }
 
-    /// @notice Returns the claimable rewards for a given NFT
+    /// @notice Returns the claimable rewards for a given NFT + lost rewards due to the claim bug in version 1 of the contract (if any)
     /// @dev Rewards are calculated using the formula:
     /// rewards = rewardRate * (lastDelegationPeriodEndBlock - lastClaimBlock)
     /// where rewardRate is determined by the NFT's level.
@@ -531,17 +651,35 @@ contract StargateDelegation is
     function claimableRewards(uint256 _tokenId) public view returns (uint256) {
         StargateDelegationStorage storage $ = _getStargateDelegationStorage();
 
-        // If current block is before delegation start (because of the maturity period), there are no rewards
+        // Check if there are any lost rewards for the current owner of the NFT
+        uint256 lostRewards;
+        if ($.stargateNFT.tokenExists(_tokenId)) {
+            address owner = $.stargateNFT.ownerOf(_tokenId);
+            lostRewards = $.lostRewards[owner][_tokenId];
+        }
+
+        uint256 delegationRewards = _claimableDelegationRewards($, _tokenId);
+
+        return lostRewards + delegationRewards;
+    }
+
+    /// @notice Internal function to calculate the claimable rewards for a given NFT
+    /// @param _tokenId - the tokenId of the NFT
+    /// @return claimableRewards - the claimable rewards
+    function _claimableDelegationRewards(
+        StargateDelegationStorage storage $,
+        uint256 _tokenId
+    ) internal view returns (uint256) {
+        // If current block is before rewards accumulation start block (because of the maturity period),
+        // there are no delegation rewards
         if (clock() < $.rewardsAccumulationStartBlock[_tokenId]) {
             return 0;
         }
 
-        uint256 endBlock = _calculateLastCompletedPeriodEndBlock($, _tokenId);
-
-        return _calculateRewards($, _tokenId, endBlock);
+        return _calculateRewards($, _tokenId, _calculateLastCompletedPeriodEndBlock($, _tokenId));
     }
 
-    /// @notice Returns the accumulated rewards for a given NFT
+    /// @notice Returns the accumulated rewards for a given NFT + lost rewards due to the claim bug in version 1 of the contract (if any)
     /// Differently from claimableRewards, this function returns the sum of all the rewards that the user has accumulated since the last claim,
     /// without taking into accounts delegationPeriod duration.
     /// eg: delegationPeriod is 10 blocks, user starts delegating at block 1, we are in bock 15, then
@@ -561,7 +699,22 @@ contract StargateDelegation is
             endBlock = $.rewardsAccumulationEndBlock;
         }
 
-        return _calculateRewards($, _tokenId, endBlock);
+        uint256 delegationRewards = _calculateRewards($, _tokenId, endBlock);
+
+        // Check if there are any lost rewards for the current owner of the NFT
+        address owner = $.stargateNFT.ownerOf(_tokenId);
+        uint256 lostRewards = $.lostRewards[owner][_tokenId];
+
+        return lostRewards + delegationRewards;
+    }
+
+    /// @notice Returns the claimable lost rewards for a given owner of an NFT
+    /// @param _owner - the owner of the NFT
+    /// @param _tokenId - the tokenId of the NFT
+    /// @return claimableLostRewards - the claimable lost rewards
+    function claimableLostRewards(address _owner, uint256 _tokenId) public view returns (uint256) {
+        StargateDelegationStorage storage $ = _getStargateDelegationStorage();
+        return $.lostRewards[_owner][_tokenId];
     }
 
     /// @notice Function to calculate the last completed delegation period end block for a given NFT
