@@ -60,8 +60,9 @@ export function createLocalConfig() {
     TOKEN_COLLECTION_NAME: "StarGate Delegator Token",
     TOKEN_COLLECTION_SYMBOL: "SDT",
     TOKEN_LEVELS: initialTokenLevels,
-    LEGACY_LAST_TOKEN_ID: 1000, // create an offset of 1000 tokens, so we can mint and migrate after the contracts are deployed
-    BASE_TOKEN_URI: "ipfs://bafybeiarvgsibacpyvfnjfhyns4vmzy5p2dapzvcan6utoqca4w4k5a2xm/metadata/",
+    LEGACY_LAST_TOKEN_ID: 100000,
+    BASE_TOKEN_URI: "ipfs://bafybeibmpgruasnoqgyemcprpkygtelvxl3b5d2bf5aqqciw6dds33yw7y/metadata/",
+    WHITELIST_ENTRIES_V2: [], // Overwritten on deploy
     // NodeManagement contract
     NODE_MANAGEMENT_CONTRACT_ADDRESS: "0x45d5CA3f295ad8BCa291cC4ecd33382DE40E4FAc",
   });

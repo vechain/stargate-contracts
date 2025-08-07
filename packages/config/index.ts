@@ -1,20 +1,20 @@
 import testnetConfig from "./testnet";
 import mainnetConfig from "./mainnet";
 import localConfig from "./local";
-import rewardsConfig from "./rewards";
 import { EnvConfig, getContractsConfig } from "./contracts";
 import { Network } from "@repo/constants";
 
 export type AppConfig = {
   environment: EnvConfig;
   basePath?: string;
-  ipfsPinningService: string
-  ipfsFetchingService: string
+  ipfsPinningService: string;
+  ipfsFetchingService: string;
   legacyNodesContractAddress: string;
   stargateNFTContractAddress: string;
   stargateDelegationContractAddress: string;
   nodeManagementContractAddress: string;
   nodeUrl: string;
+  indexerUrl: string;
   network: Network;
 };
 
@@ -28,7 +28,6 @@ export const getConfig = (env?: EnvConfig): AppConfig => {
   if (appEnv === "testnet") return testnetConfig;
   if (appEnv === "mainnet") return mainnetConfig;
   if (appEnv === "local") return localConfig;
-  if (appEnv === "rewards") return rewardsConfig;
 
   throw new Error(`Unsupported VITE_APP_ENV ${appEnv}`);
 };

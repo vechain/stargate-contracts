@@ -1,7 +1,6 @@
 import { ethers } from "ethers";
 import { TokenLevelId } from "./config";
 import { type LevelAndSupply } from "./types";
-import { BLOCKS_PER_DAY } from "../type";
 
 export const initialTokenLevels: LevelAndSupply[] = [
   // Legacy normal levels

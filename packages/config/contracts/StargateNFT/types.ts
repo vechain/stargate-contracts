@@ -11,7 +11,7 @@ export type LevelRaw = [
   bigint, // maturityBlocks
   bigint, // scaledRewardFactor
   bigint, // vetAmountRequiredToStake
-];
+]
 
 export interface Level {
   name: string;
@@ -27,11 +27,19 @@ export type TokenRaw = [
   bigint, // levelId
   bigint, // mintedAtBlock
   bigint, // vetAmountStaked
-];
+  bigint, // lastVthoClaimTimestamp
+]
 
 export interface Token {
   tokenId: number;
   levelId: number;
   mintedAtBlock: bigint;
   vetAmountStaked: bigint;
+  lastVthoClaimTimestamp: bigint;
+}
+
+export interface WhitelistEntryInit {
+  owner: string;
+  tokenId: number;
+  levelId: number;
 }

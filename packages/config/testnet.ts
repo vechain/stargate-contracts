@@ -9,6 +9,7 @@ import { AppConfig } from "."
   "nodeManagementContractAddress": "0x8bcbfc20ee39c94f4e60afc5d78c402f70b4f3b2",
   "stargateDelegationContractAddress": "0x7240e3bc0d26431512d5b67dbd26d199205bffe8",
   "nodeUrl": "https://testnet.vechain.org",
+  "indexerUrl": "https://indexer.testnet.vechain.org/api/v1",
   "network": {
     "id": "test",
     "name": "test",
