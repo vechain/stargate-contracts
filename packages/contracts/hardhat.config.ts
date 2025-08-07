@@ -57,6 +57,7 @@ const config: HardhatUserConfig = {
   },
   mocha: {
     timeout: 1800000,
+    grep: process.env.SHARD || undefined,
   },
   gasReporter: {
     enabled: false,
@@ -107,11 +108,6 @@ const config: HardhatUserConfig = {
   },
   docgen: {
     pages: "files",
-  },
-  sourcify: {
-    enabled: true,
-    apiUrl: "https://sourcify.dev/server",
-    browserUrl: "https://repo.sourcify.dev",
   },
 };
 

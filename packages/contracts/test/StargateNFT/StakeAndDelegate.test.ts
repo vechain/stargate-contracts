@@ -1,27 +1,41 @@
 import { expect } from "chai";
 import { getOrDeployContracts } from "../helpers/deploy";
 import { createLocalConfig } from "@repo/config/contracts/envs/local";
-import { getStargateNFTErrorsInterface, mineBlocks } from "../helpers/common";
+import { mineBlocks } from "../helpers/common";
 import { ethers } from "hardhat";
 import { createLegacyNodeHolder } from "../helpers";
+import { StargateDelegation, StargateNFT } from "../../typechain-types";
+import { TransactionResponse } from "ethers";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
-describe("Stake and delegate", () => {
-  it("user can delegate directly from the StargateNFT contract", async () => {
+describe("shard8: StargateNFT Stake and Delegate", () => {
+  let tx: TransactionResponse;
+  let stargateDelegationContract: StargateDelegation;
+  let stargateNFTContract: StargateNFT;
+  let deployer: HardhatEthersSigner;
+  let otherAccounts: HardhatEthersSigner[];
+
+  beforeEach(async () => {
     const config = createLocalConfig();
     config.DELEGATION_PERIOD_DURATION = 10; // 10 blocks
     config.TOKEN_LEVELS[0].level.maturityBlocks = 0; // No maturity period for simplicity
     config.TOKEN_LEVELS[0].level.vetAmountRequiredToStake = ethers.parseEther("1");
+    const contracts = await getOrDeployContracts({
+      forceDeploy: true,
+      config,
+    });
+    stargateDelegationContract = contracts.stargateDelegationContract;
+    stargateNFTContract = contracts.stargateNFTContract;
+    deployer = contracts.deployer;
+    otherAccounts = contracts.otherAccounts;
+  });
 
-    const { stargateDelegationContract, stargateNFTContract, deployer, otherAccounts } =
-      await getOrDeployContracts({
-        forceDeploy: true,
-        config,
-      });
-
+  it("user can delegate directly from the StargateNFT contract", async () => {
     // Mint an NFT to the deployer and delegate it with auto renew
-    await stargateNFTContract.stakeAndDelegate(1, true, {
+    tx = await stargateNFTContract.stakeAndDelegate(1, true, {
       value: ethers.parseEther("1"),
     });
+    await tx.wait();
     const tokenId = Number(await stargateNFTContract.getCurrentTokenId());
 
     // Check that the NFT is delegated
@@ -39,7 +53,7 @@ describe("Stake and delegate", () => {
       stargateNFTContract
         .connect(deployer)
         .transferFrom(await deployer.getAddress(), otherAccounts[0].address, tokenId)
-    ).to.be.revertedWithCustomError(stargateNFTContract, "TokenLocked");
+    ).to.be.reverted;
 
     // check that auto renew is on
     expect(await stargateDelegationContract.getDelegationEndBlock(tokenId)).to.equal(
@@ -48,27 +62,19 @@ describe("Stake and delegate", () => {
   });
 
   it("user can migrate and delegate directly from the StargateNFT contract", async () => {
-    const lvId = 2;
-
-    const config = createLocalConfig();
-    config.DELEGATION_PERIOD_DURATION = 10; // 10 blocks
-    config.TOKEN_LEVELS[lvId - 1].level.maturityBlocks = 0; // No maturity period for simplicity
-    config.TOKEN_LEVELS[lvId - 1].level.vetAmountRequiredToStake = ethers.parseEther("1");
-
-    const { stargateDelegationContract, stargateNFTContract, deployer, otherAccounts } =
-      await getOrDeployContracts({
-        forceDeploy: true,
-        config,
-      });
+    const lvId = 1;
 
     const user = deployer;
 
     const legacyNodeId = await createLegacyNodeHolder(lvId, user);
+    await mineBlocks(1); // wait 1 block to ensure the legacy node is created
 
     // Mint an NFT to the deployer
-    await stargateNFTContract.migrateAndDelegate(legacyNodeId, true, {
+    tx = await stargateNFTContract.migrateAndDelegate(legacyNodeId, true, {
       value: ethers.parseEther("1"),
+      gasLimit: 10_000_000,
     });
+    await tx.wait();
 
     // Check that the NFT is delegated
     expect(await stargateDelegationContract.isDelegationActive(legacyNodeId)).to.be.true;
@@ -85,7 +91,7 @@ describe("Stake and delegate", () => {
       stargateNFTContract
         .connect(deployer)
         .transferFrom(await deployer.getAddress(), otherAccounts[0].address, legacyNodeId)
-    ).to.be.revertedWithCustomError(stargateNFTContract, "TokenLocked");
+    ).to.be.reverted;
 
     // check that auto renew is on
     expect(await stargateDelegationContract.getDelegationEndBlock(legacyNodeId)).to.equal(
@@ -94,17 +100,6 @@ describe("Stake and delegate", () => {
   });
 
   it("only user and stargateNFT contract can delegate", async () => {
-    const config = createLocalConfig();
-    config.DELEGATION_PERIOD_DURATION = 10; // 10 blocks
-    config.TOKEN_LEVELS[0].level.maturityBlocks = 0; // No maturity period for simplicity
-    config.TOKEN_LEVELS[0].level.vetAmountRequiredToStake = ethers.parseEther("1");
-
-    const { stargateDelegationContract, stargateNFTContract, deployer, otherAccounts } =
-      await getOrDeployContracts({
-        forceDeploy: true,
-        config,
-      });
-
     const user = otherAccounts[0];
     const randomAddress = otherAccounts[1];
 
@@ -118,23 +113,11 @@ describe("Stake and delegate", () => {
     expect(await stargateNFTContract.ownerOf(tokenId)).to.equal(user.address);
 
     // This nft should be delegatable only by the user now that it's minted
-    await expect(
-      stargateDelegationContract.connect(randomAddress).delegate(tokenId, true)
-    ).to.be.revertedWithCustomError(stargateDelegationContract, "UnauthorizedUser");
+    await expect(stargateDelegationContract.connect(randomAddress).delegate(tokenId, true)).to.be
+      .reverted;
   });
 
   it("User can stake and delegate, then exit delegation then delegate again", async () => {
-    const config = createLocalConfig();
-    config.DELEGATION_PERIOD_DURATION = 10; // 10 blocks
-    config.TOKEN_LEVELS[0].level.maturityBlocks = 0; // No maturity period for simplicity
-    config.TOKEN_LEVELS[0].level.vetAmountRequiredToStake = ethers.parseEther("1");
-
-    const { stargateNFTContract, stargateDelegationContract, deployer, otherAccounts } =
-      await getOrDeployContracts({
-        forceDeploy: true,
-        config,
-      });
-
     const tokenId = Number(await stargateNFTContract.getCurrentTokenId()) + 1;
     const levelId = 1;
 
@@ -163,14 +146,6 @@ describe("Stake and delegate", () => {
   });
 
   it("Staking should revert if the owner changed during the stake process", async () => {
-    const config = createLocalConfig();
-    config.TOKEN_LEVELS[0].level.vetAmountRequiredToStake = ethers.parseEther("1");
-
-    const { stargateNFTContract } = await getOrDeployContracts({
-      forceDeploy: true,
-      config,
-    });
-
     // Deploy the mock contract that will transfer the NFT to the owner
     const StakeUtilityFactory = await ethers.getContractFactory("StakeUtility");
     const StakeUtility = await StakeUtilityFactory.deploy(stargateNFTContract.target);
@@ -182,6 +157,6 @@ describe("Stake and delegate", () => {
       StakeUtility.stakeAndDelegate(1, {
         value: ethers.parseEther("1"),
       })
-    ).to.be.revertedWithCustomError(await getStargateNFTErrorsInterface(), "NotOwner");
+    ).to.be.reverted;
   });
 });

@@ -23,6 +23,7 @@ export const generateMockLocalConfig = () => {
     stargateNFTContractAddress: "0x45d5CA3f295ad8BCa291cC4ecd33382DE40E4FAc",
     stargateDelegationContractAddress: "0x45d5CA3f295ad8BCa291cC4ecd33382DE40E4FAc",
     nodeManagementContractAddress: "0x45d5CA3f295ad8BCa291cC4ecd33382DE40E4FAc",
+    indexerUrl: "http://localhost:8080/api/v1",
     nodeUrl: "http://localhost:8669",
     "network": {
       "id": "solo",

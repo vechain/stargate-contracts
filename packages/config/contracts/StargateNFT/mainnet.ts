@@ -14,7 +14,7 @@ export const initialTokenLevels: LevelAndSupply[] = [
       scaledRewardFactor: 150,
       maturityBlocks: BLOCKS_PER_DAY * 30,
     },
-    cap: 1381, // 2500 - (1101 + 18 None upgrading), TODO: confirm ahead/around deployment time
+    cap: 1382, // 2500 - (1100 + 18 None upgrading),
     circulatingSupply: 0,
   },
   {
@@ -26,7 +26,7 @@ export const initialTokenLevels: LevelAndSupply[] = [
       scaledRewardFactor: 250,
       maturityBlocks: BLOCKS_PER_DAY * 45,
     },
-    cap: 233, // 300 - (60 + 7 Strength upgrading)
+    cap: 234, // 300 - (60 + 6 Strength upgrading)
     circulatingSupply: 0,
   },
   {
@@ -38,7 +38,7 @@ export const initialTokenLevels: LevelAndSupply[] = [
       scaledRewardFactor: 350,
       maturityBlocks: BLOCKS_PER_DAY * 60,
     },
-    cap: 19, // 100 - (81 + 6 Thunder upgrading)
+    cap: 13, // 100 - (82 + 5 Thunder upgrading)
     circulatingSupply: 0,
   },
   // Legacy X Levels
@@ -51,7 +51,7 @@ export const initialTokenLevels: LevelAndSupply[] = [
       scaledRewardFactor: 200,
       maturityBlocks: 0,
     },
-    cap: 0, // 736
+    cap: 0, // 735
     circulatingSupply: 0,
   },
   {
@@ -63,7 +63,7 @@ export const initialTokenLevels: LevelAndSupply[] = [
       scaledRewardFactor: 300,
       maturityBlocks: 0,
     },
-    cap: 0, // 834 + 12 VeThorX upgrading is 846
+    cap: 0, // 831 + 12 VeThorX upgrading is 843
     circulatingSupply: 0,
   },
   {

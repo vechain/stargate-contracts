@@ -10,11 +10,80 @@ on:
       - main
 
 jobs:
-  run-unit-tests:
-    name: Unit Testing
+  check-changes:
+    name: Check Changes in PR
     runs-on: ubuntu-latest
+    outputs:
+      contracts-changed: ${{ steps.changes.outputs.contracts }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Check for changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            contracts:
+              - 'packages/contracts/**'
+
+  run-contracts-tests:
+    name: SC Test ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    needs: check-changes
+    if: needs.check-changes.outputs.contracts-changed == 'true'
+    env:
+      NODE_OPTIONS: "--max-old-space-size=8192"
     strategy:
       fail-fast: false
+      matrix:
+        include:
+          - shard: shard1000
+            label: NodeManagement
+          - shard: shard1001
+            label: NodeManagementV3
+          - shard: shard100
+            label: StargateDel Deployment
+          - shard: shard101
+            label: StargateDel Upgradeability
+          - shard: shard102
+            label: StargateDel Settings
+          - shard: shard103
+            label: StargateDel Delegation
+          - shard: shard104
+            label: StargateDel Rewards
+          - shard: shard105
+            label: StargateDel NodeManagement
+          - shard: shard106
+            label: StargateDel Lost Rewards
+          - shard: shard1
+            label: StargateNFT Deployment
+          - shard: shard2
+            label: StargateNFT Pausability
+          - shard: shard3
+            label: StargateNFT Upgradeability
+          - shard: shard4
+            label: StargateNFT Settings
+          - shard: shard5
+            label: StargateNFT Levels
+          - shard: shard6
+            label: StargateNFT Compatibility
+          - shard: shard7
+            label: StargateNFT Staking
+          - shard: shard8
+            label: StargateNFT Stake and Delegate
+          - shard: shard9
+            label: StargateNFT Migration
+          - shard: shard10
+            label: StargateNFT Whitelisted Migration
+          - shard: shard11
+            label: StargateNFT Unstaking
+          - shard: shard12
+            label: StargateNFT Base Rewards
+          - shard: shard13
+            label: StargateNFT Rewards Auto Claiming
+          - shard: shard10000
+            label: Reentrancy Attacks
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -25,8 +94,13 @@ jobs:
           node-version-file: .nvmrc
           cache: "yarn"
 
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/yarn.lock') }}
 
       - name: Cache Solidity compilers
         uses: actions/cache@v3
@@ -36,32 +110,68 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-solc-
 
-      - name: Compile contracts
-        env:
-          NODE_OPTIONS: "--max-old-space-size=8192"
-        run: yarn contracts:compile
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
 
-      - name: Check build
-        env:
-          NODE_OPTIONS: "--max-old-space-size=8192"
-        run: yarn build
+      - name: Set shard environment variable
+        run: echo "SHARD=${{ matrix.shard }}" >> $GITHUB_ENV
 
-      - name: Run Unit Tests and Check Coverage
-        env:
-          NODE_OPTIONS: "--max-old-space-size=8192"
+      - name: Run tests and coverage
         run: yarn test:coverage:solidity
 
-      - name: Upload Coverage
+      - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
-          name: coverage
+          name: coverage-${{ matrix.shard }}
           path: packages/contracts/coverage/coverage-final.json
 
-      - name: Generate Final Coverage Report
+  upload-merged-coverage:
+    name: Upload Merged Coverage Reports
+    runs-on: ubuntu-latest
+    needs: run-contracts-tests
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Use Node v20
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: .nvmrc
+          cache: "yarn"
+
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          path: packages/contracts/coverage-shards
+
+      - name: Debug downloaded artifacts
+        run: |
+          ls -la packages/contracts/coverage-shards
+
+      - name: Merge coverage reports
+        working-directory: packages/contracts
+        run: npx ts-node scripts/helpers/merge-coverage.ts
+
+      - name: Create .nyc_output directory
+        run: mkdir -p packages/contracts/.nyc_output
+
+      - name: Generate final coverage report
         working-directory: packages/contracts
         run: yarn coverage:report
 
-      - name: Upload Unified Coverage Report to Codecov
+      - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v4
         with:
           directory: packages/contracts/coverage/
@@ -70,57 +180,11 @@ jobs:
 
   # run-slither:
   #   name: Slither Analysis
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v3
-
-  #     - name: Use Node v20
-  #       uses: actions/setup-node@v3
-  #       with:
-  #         node-version-file: .nvmrc
-  #         cache: "yarn"
-
-  #     - name: Install dependencies
-  #       run: yarn install --frozen-lockfile
-
-  #     - name: Cache Solidity compilers
-  #       uses: actions/cache@v3
-  #       with:
-  #         path: ~/.cache/hardhat-nodejs
-  #         key: ${{ runner.os }}-solc-${{ hashFiles('./packages/contracts/hardhat.config.ts') }}
-  #         restore-keys: |
-  #           ${{ runner.os }}-solc-
-
-  #     - name: Compile contracts
-  #       env:
-  #         NODE_OPTIONS: "--max-old-space-size=8192"
-  #       run: yarn contracts:compile
-
-  #     - name: Run Slither
-  #       uses: crytic/slither-action@v0.4.0
-  #       id: slither
-  #       with:
-  #         ignore-compile: true
-  #         target: "packages/contracts/"
-  #         solc-version: "0.8.20"
-  #         fail-on: none
-  #         slither-args: --filter-paths "(openzeppelin|mocks|interfaces|deprecated|templates|NodeManagement/NodeManagementV1.sol|NodeManagement/NodeManagementV2.sol)" --exclude-informational --exclude-optimization --checklist --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/
-
-  #     - name: Upload Slither report
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: slither-report
-  #         path: slither-report.md
-
-  #     - name: Create/update checklist as PR comment
-  #       uses: actions/github-script@v7
-  #       if: github.event_name == 'pull_request'
-  #       env:
-  #         REPORT: ${{ steps.slither.outputs.stdout }}
-  #       with:
-  #         script: |
-  #           const script = require('.github/scripts/comment')
-  #           const header = '# Slither report'
-  #           const body = process.env.REPORT
-  #           await script({ github, context, header, body })
+  #   uses: vechain/github-actions/.github/workflows/slither.yaml@fix/slither-edge-cases
+  #   needs: check-changes
+  #   if: needs.check-changes.outputs.contracts-changed == 'true'
+  #   with:
+  #     target: "packages/contracts/"
+  #     solc-version: "0.8.20"
+  #     fail-on: none
+  #     slither-args: '--filter-paths "(openzeppelin|mocks|interfaces|deprecated|templates|NodeManagement/NodeManagementV1.sol|NodeManagement/NodeManagementV2.sol)" --exclude-informational --exclude-optimization --checklist --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/'

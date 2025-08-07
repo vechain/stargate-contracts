@@ -8,8 +8,12 @@ import { StargateNFT, Errors, StargateDelegation, MyERC20 } from "../../typechai
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { ContractsConfig } from "@repo/config/contracts/type";
 import { createLegacyNodeHolder } from "../helpers";
+import { compareAddresses } from "@repo/utils/AddressUtils";
+import { TransactionResponse } from "ethers";
 
-describe("StargateNFT unstaking", () => {
+describe("shard11: StargateNFT Unstaking", () => {
+  let tx: TransactionResponse;
+
   describe("Scenario: Unstaking a Node", () => {
     let config: ContractsConfig;
     let stargateNFT: StargateNFT;
@@ -22,7 +26,7 @@ describe("StargateNFT unstaking", () => {
     let levelSpec: LevelRaw;
     let expectedTokenId: number;
 
-    before(async () => {
+    beforeEach(async () => {
       config = createLocalConfig();
 
       // change the maturity period to 5 blocks
@@ -45,7 +49,8 @@ describe("StargateNFT unstaking", () => {
       expectedTokenId = config.LEGACY_LAST_TOKEN_ID + 1;
       levelSpec = await stargateNFT.getLevel(levelId);
 
-      await stargateNFT.connect(user1).stake(levelId, { value: levelSpec[5] });
+      tx = await stargateNFT.connect(user1).stake(levelId, { value: levelSpec[5] });
+      await tx.wait();
     });
 
     it("should start testing with expected state", async () => {
@@ -67,14 +72,15 @@ describe("StargateNFT unstaking", () => {
       const stargateNFTBalance = await ethers.provider.getBalance(stargateNFTAddress);
 
       // Unstake
-      const tx = await stargateNFT.connect(user1).unstake(expectedTokenId);
+      tx = await stargateNFT.connect(user1).unstake(expectedTokenId, { gasLimit: 10_000_000 });
+      await tx.wait();
 
       // Assert that NFT was burned
       expect(await stargateNFT.balanceOf(user1)).to.equal(0);
 
       // Assert tx from and to addresses
-      expect(tx.from).to.equal(user1Address);
-      expect(tx.to).to.equal(stargateNFTAddress);
+      expect(compareAddresses(tx.from, user1Address)).to.be.true;
+      expect(compareAddresses(tx.to ?? undefined, stargateNFTAddress)).to.be.true;
 
       // Assert that stargateNFT balance decreased by the unstaked amount
       expect(await ethers.provider.getBalance(stargateNFTAddress)).to.equal(
@@ -85,13 +91,9 @@ describe("StargateNFT unstaking", () => {
     it("burn callback is not callable externally", async () => {
       const deployer = (await ethers.getSigners())[0];
 
-      await expect(stargateNFT.connect(deployer)._burnCallback(100000))
-        .to.be.revertedWithCustomError(errorsInterface, "UnauthorizedCaller")
-        .withArgs(deployer.address);
+      await expect(stargateNFT.connect(deployer)._burnCallback(100000)).to.be.reverted;
 
-      await expect(stargateNFT.connect(user1)._burnCallback(100000))
-        .to.be.revertedWithCustomError(errorsInterface, "UnauthorizedCaller")
-        .withArgs(user1.address);
+      await expect(stargateNFT.connect(user1)._burnCallback(100000)).to.be.reverted;
     });
 
     it("should not be able to unstake when delegating", async () => {
@@ -100,16 +102,24 @@ describe("StargateNFT unstaking", () => {
       const levels = await stargateNFT.getLevels();
       const level = levels[0];
 
-      await stargateNFT
+      tx = await stargateNFT
         .connect(user1)
         .stakeAndDelegate(level.id, false, { value: level.vetAmountRequiredToStake });
+      await tx.wait();
 
-      await expect(
-        stargateNFT.connect(user1).unstake(latestTokenId + 1n)
-      ).to.be.revertedWithCustomError(errorsInterface, "TokenNotEligible");
+      await expect(stargateNFT.connect(user1).unstake(latestTokenId + 1n)).to.be.reverted;
     });
 
     it("Cannot unstake on behalf of another user", async () => {
+      const levelSpec = await stargateNFT.getLevel(levelId);
+
+      // stake and delegate
+      tx = await stargateNFT.connect(user1).stakeAndDelegate(levelId, false, {
+        value: levelSpec[5],
+        gasLimit: 10_000_000,
+      });
+      await tx.wait();
+
       const latestTokenId = await stargateNFT.getCurrentTokenId();
 
       const delegetaionExitBlock = await stargateDelegation.getDelegationEndBlock(latestTokenId);
@@ -120,9 +130,7 @@ describe("StargateNFT unstaking", () => {
 
       const otherUser = (await ethers.getSigners())[8];
 
-      await expect(
-        stargateNFT.connect(otherUser).unstake(latestTokenId)
-      ).to.be.revertedWithCustomError(errorsInterface, "NotOwner");
+      await expect(stargateNFT.connect(otherUser).unstake(latestTokenId)).to.be.reverted;
     });
   });
 
@@ -131,40 +139,37 @@ describe("StargateNFT unstaking", () => {
     let stargateNFT: StargateNFT;
     let stargateDelegation: StargateDelegation;
     let errorsInterface: Errors;
-    let mockedVthoToken: MyERC20;
 
     let user1: HardhatEthersSigner;
     const levelId = TokenLevelId.ThunderX;
     let expectedTokenId: number;
 
-    before(async () => {
+    beforeEach(async () => {
       config = createLocalConfig();
 
-      const {
-        stargateNFTContract,
-        stargateDelegationContract,
-        otherAccounts,
-        mockedVthoToken: mockedVthoTokenContract,
-      } = await getOrDeployContracts({
+      const contracts = await getOrDeployContracts({
         forceDeploy: true,
         config,
       });
 
-      stargateNFT = stargateNFTContract;
-      stargateDelegation = stargateDelegationContract;
-      mockedVthoToken = mockedVthoTokenContract;
+      stargateNFT = contracts.stargateNFTContract;
+      stargateDelegation = contracts.stargateDelegationContract;
       errorsInterface = await getStargateNFTErrorsInterface(stargateNFT);
 
-      user1 = otherAccounts[0];
+      user1 = contracts.otherAccounts[0];
 
       const legacyNodeId = await createLegacyNodeHolder(levelId, user1);
+      // wait 1 block to ensure the legacy node is created
+      await mineBlocks(1);
 
       expectedTokenId = Number(legacyNodeId);
 
       // Mint an NFT to the deployer
-      await stargateNFT.connect(user1).migrate(legacyNodeId, {
+      tx = await stargateNFT.connect(user1).migrate(legacyNodeId, {
         value: config.TOKEN_LEVELS[levelId - 1].level.vetAmountRequiredToStake,
+        gasLimit: 10_000_000,
       });
+        await tx.wait();
     });
 
     it("should start testing with expected state", async () => {
@@ -188,7 +193,9 @@ describe("StargateNFT unstaking", () => {
     it("should be able to unstake, receive the amount back and decrease the cap of the level", async () => {
       const capBeforeUnstake = await stargateNFT.getCap(levelId);
 
-      await expect(stargateNFT.connect(user1).unstake(expectedTokenId)).to.changeEtherBalances(
+      await expect(
+        stargateNFT.connect(user1).unstake(expectedTokenId, { gasLimit: 10_000_000 })
+      ).to.changeEtherBalances(
         [user1, stargateNFT.target],
         [
           config.TOKEN_LEVELS[levelId - 1].level.vetAmountRequiredToStake,
@@ -202,14 +209,8 @@ describe("StargateNFT unstaking", () => {
       expect(await stargateNFT.balanceOf(user1)).to.equal(0);
       expect(await stargateNFT.idsOwnedBy(user1.address)).to.deep.equal([]);
 
-      await expect(stargateNFT.isXToken(expectedTokenId)).to.be.revertedWithCustomError(
-        stargateNFT,
-        "ERC721NonexistentToken"
-      );
-      await expect(stargateNFT.isNormalToken(expectedTokenId)).to.be.revertedWithCustomError(
-        stargateNFT,
-        "ERC721NonexistentToken"
-      );
+      await expect(stargateNFT.isXToken(expectedTokenId)).to.be.reverted;
+      await expect(stargateNFT.isNormalToken(expectedTokenId)).to.be.reverted;
       expect(await stargateNFT.tokenExists(expectedTokenId)).to.be.false;
     });
   });

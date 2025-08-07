@@ -16,7 +16,7 @@ export async function rolesTransfer() {
       config.stargateNFTContractAddress
     );
     const stargateDelegationContract = await ethers.getContractAt(
-      "StargateDelegation",
+      "StargateDelegationV1",
       config.stargateDelegationContractAddress
     );
 

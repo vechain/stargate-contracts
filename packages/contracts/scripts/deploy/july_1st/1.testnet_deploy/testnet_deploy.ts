@@ -3,14 +3,11 @@ import { ethers, network } from "hardhat";
 import {
   deployAndUpgrade,
   saveContractsToFile,
-  addToken,
-  parseTokenMetadata,
   deployUpgradeableWithoutInitialization,
   initializeProxy,
 } from "../../../helpers";
-import { StargateNFT, StargateDelegation, NodeManagementV2 } from "../../../../typechain-types";
+import { StargateNFT, NodeManagementV2, StargateDelegationV1 } from "../../../../typechain-types";
 import { HttpNetworkConfig } from "hardhat/types";
-import { StrengthLevel } from "@repo/config/contracts/VechainNodes";
 import { deployStargateNFTLibraries } from "../../libraries";
 import { getConfig } from "@repo/config";
 import { overrideLocalConfigWithNewContracts } from "../../../overrideConfigFile";
@@ -113,7 +110,7 @@ export async function deployTestnetRelease(
 
   console.log(`Deploying StargateDelegation...`);
   const stargateDelegationProxyAddress = await deployUpgradeableWithoutInitialization(
-    "StargateDelegation",
+    "StargateDelegationV1",
     {},
     true
   );
@@ -153,7 +150,7 @@ export async function deployTestnetRelease(
   console.log("StargateDelegation");
   const stargateDelegation = (await initializeProxy(
     stargateDelegationProxyAddress,
-    "StargateDelegation",
+    "StargateDelegationV1",
     [
       {
         upgrader: deployer.address,
@@ -166,7 +163,7 @@ export async function deployTestnetRelease(
       },
     ],
     {}
-  )) as StargateDelegation;
+  )) as StargateDelegationV1;
   console.log("StargateDelegation initialized");
 
   console.log("Deploying NodeManagement...");

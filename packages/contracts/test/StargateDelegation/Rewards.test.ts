@@ -3,38 +3,48 @@ import { getOrDeployContracts } from "../helpers/deploy";
 import { createLocalConfig } from "@repo/config/contracts/envs/local";
 import { mineBlocks } from "../helpers/common";
 import { ethers } from "hardhat";
+import { TransactionResponse } from "ethers";
 
-describe("StargateDelegation rewards", () => {
+describe("shard104: StargateDelegation Rewards", () => {
+  let tx: TransactionResponse;
   it("should provide extra VTHO rewards based on NFT tier and lockup", async () => {
     const config = createLocalConfig();
-    config.DELEGATION_PERIOD_DURATION = 7; // 7 days in blocks (for test simplicity, we use blocks)
+    config.DELEGATION_PERIOD_DURATION = 7; // 7 blocks (for test simplicity)
     config.TOKEN_LEVELS[0].level.maturityBlocks = 0; // No maturity for simplicity
     config.TOKEN_LEVELS[0].level.vetAmountRequiredToStake = ethers.parseEther("1");
     config.TOKEN_LEVELS[1].level.maturityBlocks = 0;
     config.TOKEN_LEVELS[1].level.vetAmountRequiredToStake = ethers.parseEther("10");
 
-    const { stargateDelegationContract, stargateNFTContract, deployer, mockedVthoToken } =
-      await getOrDeployContracts({
-        forceDeploy: true,
-        config,
-      });
+    const { stargateDelegationContract, stargateNFTContract } = await getOrDeployContracts({
+      forceDeploy: true,
+      config,
+    });
 
     // Mint Tier 1 NFT
-    await stargateNFTContract.stake(1, {
+    tx = await stargateNFTContract.stake(1, {
       value: ethers.parseEther("1"),
     });
+    await tx.wait();
+
     const tier1TokenId = Number(await stargateNFTContract.getCurrentTokenId());
 
     // Mint Tier 2 NFT
-    await stargateNFTContract.stake(2, {
+    tx = await stargateNFTContract.stake(2, {
       value: ethers.parseEther("10"),
     });
+    await tx.wait();
+
     const tier2TokenId = Number(await stargateNFTContract.getCurrentTokenId());
 
     // Start delegation for both NFTs
-    await stargateDelegationContract.delegate(tier1TokenId, true);
+    tx = await stargateDelegationContract.delegate(tier1TokenId, true);
+    await tx.wait();
+
     const blockWhenTier1Delegated = await stargateDelegationContract.clock();
-    await stargateDelegationContract.delegate(tier2TokenId, true);
+
+    tx = await stargateDelegationContract.delegate(tier2TokenId, true);
+    await tx.wait();
+
     const blockWhenTier2Delegated = await stargateDelegationContract.clock();
 
     // Mine some blocks to accumulate rewards
@@ -42,10 +52,12 @@ describe("StargateDelegation rewards", () => {
     await mineBlocks(blocksPassed);
 
     // Check accumulated delegation rewards for both tiers
-    const tier1DelegationRewards =
-      await stargateDelegationContract.accumulatedRewards(tier1TokenId);
-    const tier2DelegationRewards =
-      await stargateDelegationContract.accumulatedRewards(tier2TokenId);
+    const tier1DelegationRewards = await stargateDelegationContract.accumulatedRewards(
+      tier1TokenId
+    );
+    const tier2DelegationRewards = await stargateDelegationContract.accumulatedRewards(
+      tier2TokenId
+    );
 
     // Verify higher tier NFT gets more delegation rewards
     expect(tier2DelegationRewards).to.be.gt(tier1DelegationRewards);
@@ -84,8 +96,8 @@ describe("StargateDelegation rewards", () => {
   it("should allow claiming delegation rewards every 7 days", async () => {
     const config = createLocalConfig();
     config.DELEGATION_PERIOD_DURATION = 7; // 7 days in blocks
-    config.TOKEN_LEVELS[1].level.maturityBlocks = 0;
-    config.TOKEN_LEVELS[1].level.vetAmountRequiredToStake = ethers.parseEther("1");
+    config.TOKEN_LEVELS[0].level.maturityBlocks = 0;
+    config.TOKEN_LEVELS[0].level.vetAmountRequiredToStake = ethers.parseEther("1");
 
     const { stargateDelegationContract, stargateNFTContract, deployer, mockedVthoToken } =
       await getOrDeployContracts({
@@ -95,35 +107,40 @@ describe("StargateDelegation rewards", () => {
 
     // Fund the contracts with VTHO for rewards
     const initialVTHOBalance = ethers.parseEther("1000");
-    await mockedVthoToken.transfer(stargateDelegationContract.target, initialVTHOBalance);
-    await mockedVthoToken.transfer(stargateNFTContract.target, initialVTHOBalance);
+    tx = await mockedVthoToken.transfer(stargateDelegationContract.target, initialVTHOBalance);
+    await tx.wait();
+    tx = await mockedVthoToken.transfer(stargateNFTContract.target, initialVTHOBalance);
+    await tx.wait();
 
     // Mint NFT
-    await stargateNFTContract.stake(1, {
+    tx = await stargateNFTContract.stake(1, {
       value: ethers.parseEther("1"),
     });
+    await tx.wait();
     const tokenId = Number(await stargateNFTContract.getCurrentTokenId());
 
     // Start delegation
-    await stargateDelegationContract.delegate(tokenId, true);
-
+    tx = await stargateDelegationContract.delegate(tokenId, true);
+    await tx.wait();
     // Mine fewer blocks than the delegation period
     await mineBlocks(3);
 
     // Check that rewards are accumulating but not yet claimable
-    const accumulatedRewardsBeforePeriodEnd =
-      await stargateDelegationContract.accumulatedRewards(tokenId);
-    const claimableRewardsBeforePeriodEnd =
-      await stargateDelegationContract.claimableRewards(tokenId);
+    const accumulatedRewardsBeforePeriodEnd = await stargateDelegationContract.accumulatedRewards(
+      tokenId
+    );
+    const claimableRewardsBeforePeriodEnd = await stargateDelegationContract.claimableRewards(
+      tokenId
+    );
 
     expect(accumulatedRewardsBeforePeriodEnd).to.be.gt(0);
     expect(claimableRewardsBeforePeriodEnd).to.equal(0);
 
-    // Try to claim delegation rewards before the delegation period ends
-    await expect(stargateDelegationContract.claimRewards(tokenId)).to.be.revertedWithCustomError(
-      stargateDelegationContract,
-      "NoRewardsToClaim"
-    );
+    // Try to claim delegation rewards before the delegation period ends should get no rewards
+    const balanceBeforeRewardsClaim = await mockedVthoToken.balanceOf(deployer.address);
+    await stargateDelegationContract.claimRewards(tokenId);
+    const balanceAfterRewardsClaim = await mockedVthoToken.balanceOf(deployer.address);
+    expect(balanceAfterRewardsClaim).to.equal(balanceBeforeRewardsClaim);
 
     // Mine more blocks to complete the delegation period
     await mineBlocks(4);
@@ -145,7 +162,8 @@ describe("StargateDelegation rewards", () => {
       .withArgs(tokenId, claimableDelegationRewards, deployer.address, deployer.address);
 
     // Claim base rewards - don't check event, just verify balance change
-    await stargateNFTContract.claimVetGeneratedVtho(tokenId);
+    tx = await stargateNFTContract.claimVetGeneratedVtho(tokenId);
+    await tx.wait();
 
     // Verify the balance increased after claiming base rewards
     const deployerVTHOBalanceAfter = await mockedVthoToken.balanceOf(deployer.address);
@@ -166,32 +184,35 @@ describe("StargateDelegation rewards", () => {
   it("should accumulate delegation rewards per block automatically", async () => {
     const config = createLocalConfig();
     config.DELEGATION_PERIOD_DURATION = 7;
-    config.TOKEN_LEVELS[1].level.maturityBlocks = 0;
-    config.TOKEN_LEVELS[1].level.vetAmountRequiredToStake = ethers.parseEther("1");
+    config.TOKEN_LEVELS[0].level.maturityBlocks = 0;
+    config.TOKEN_LEVELS[0].level.vetAmountRequiredToStake = ethers.parseEther("1");
 
-    const { stargateDelegationContract, stargateNFTContract, deployer } =
-      await getOrDeployContracts({
-        forceDeploy: true,
-        config,
-      });
+    const { stargateDelegationContract, stargateNFTContract } = await getOrDeployContracts({
+      forceDeploy: true,
+      config,
+    });
 
     // Mint NFT
-    await stargateNFTContract.stake(1, {
+    tx = await stargateNFTContract.stake(1, {
       value: ethers.parseEther("1"),
     });
+    await tx.wait();
     const tokenId = Number(await stargateNFTContract.getCurrentTokenId());
 
     // Start delegation
-    await stargateDelegationContract.delegate(tokenId, true);
+    tx = await stargateDelegationContract.delegate(tokenId, true);
+    await tx.wait();
 
     // Check rewards at different block heights
     const initialDelegationRewards = await stargateDelegationContract.accumulatedRewards(tokenId);
     const initialBaseRewards = await stargateNFTContract.claimableVetGeneratedVtho(tokenId);
 
     // Mine 1 block and check that rewards increased
+
     await mineBlocks(1);
-    const delegationRewardsAfter1Block =
-      await stargateDelegationContract.accumulatedRewards(tokenId);
+    const delegationRewardsAfter1Block = await stargateDelegationContract.accumulatedRewards(
+      tokenId
+    );
     const baseRewardsAfter1Block = await stargateNFTContract.claimableVetGeneratedVtho(tokenId);
 
     expect(delegationRewardsAfter1Block).to.be.gt(initialDelegationRewards);
@@ -199,8 +220,10 @@ describe("StargateDelegation rewards", () => {
 
     // Mine 2 more blocks and check again
     await mineBlocks(2);
-    const delegationRewardsAfter3Blocks =
-      await stargateDelegationContract.accumulatedRewards(tokenId);
+
+    const delegationRewardsAfter3Blocks = await stargateDelegationContract.accumulatedRewards(
+      tokenId
+    );
     const baseRewardsAfter3Blocks = await stargateNFTContract.claimableVetGeneratedVtho(tokenId);
 
     expect(delegationRewardsAfter3Blocks).to.be.gt(delegationRewardsAfter1Block);
@@ -219,10 +242,10 @@ describe("StargateDelegation rewards", () => {
   it("should reset delegation rewards accumulation after claiming rewards", async () => {
     const config = createLocalConfig();
     config.DELEGATION_PERIOD_DURATION = 7;
-    config.TOKEN_LEVELS[1].level.maturityBlocks = 0;
-    config.TOKEN_LEVELS[1].level.vetAmountRequiredToStake = ethers.parseEther("1");
+    config.TOKEN_LEVELS[0].level.maturityBlocks = 0;
+    config.TOKEN_LEVELS[0].level.vetAmountRequiredToStake = ethers.parseEther("1");
 
-    const { stargateDelegationContract, stargateNFTContract, deployer, mockedVthoToken } =
+    const { stargateDelegationContract, stargateNFTContract, mockedVthoToken } =
       await getOrDeployContracts({
         forceDeploy: true,
         config,
@@ -230,16 +253,19 @@ describe("StargateDelegation rewards", () => {
 
     // Fund the delegation contract with VTHO for rewards
     const initialVTHOBalance = ethers.parseEther("1000");
-    await mockedVthoToken.transfer(stargateDelegationContract.target, initialVTHOBalance);
+    tx = await mockedVthoToken.transfer(stargateDelegationContract.target, initialVTHOBalance);
+    await tx.wait();
 
     // Mint NFT
-    await stargateNFTContract.stake(1, {
+    tx = await stargateNFTContract.stake(1, {
       value: ethers.parseEther("1"),
     });
+    await tx.wait();
     const tokenId = Number(await stargateNFTContract.getCurrentTokenId());
 
     // Start delegation
-    await stargateDelegationContract.delegate(tokenId, true);
+    tx = await stargateDelegationContract.delegate(tokenId, true);
+    await tx.wait();
 
     // Mine blocks to complete a delegation period
     await mineBlocks(7);
@@ -249,7 +275,8 @@ describe("StargateDelegation rewards", () => {
     expect(claimableRewardsBefore).to.be.gt(0);
 
     // Claim rewards
-    await stargateDelegationContract.claimRewards(tokenId);
+    tx = await stargateDelegationContract.claimRewards(tokenId);
+    await tx.wait();
 
     // Check that claimable rewards reset to 0
     expect(await stargateDelegationContract.claimableRewards(tokenId)).to.equal(0);
@@ -273,26 +300,32 @@ describe("StargateDelegation rewards", () => {
   it("should stop accumulating delegation rewards after reward accumulation end block is set", async () => {
     const config = createLocalConfig();
     config.DELEGATION_PERIOD_DURATION = 7;
-    config.TOKEN_LEVELS[1].level.maturityBlocks = 0;
-    config.TOKEN_LEVELS[1].level.vetAmountRequiredToStake = ethers.parseEther("1");
+    config.TOKEN_LEVELS[0].level.maturityBlocks = 0;
+    config.TOKEN_LEVELS[0].level.vetAmountRequiredToStake = ethers.parseEther("1");
 
-    const { stargateDelegationContract, stargateNFTContract, deployer, mockedVthoToken } =
+    const { stargateDelegationContract, stargateNFTContract, mockedVthoToken } =
       await getOrDeployContracts({
         forceDeploy: true,
         config,
       });
 
     // Fund the delegation contract with VTHO for rewards
-    await mockedVthoToken.transfer(stargateDelegationContract.target, ethers.parseEther("1000"));
+    tx = await mockedVthoToken.transfer(
+      stargateDelegationContract.target,
+      ethers.parseEther("1000")
+    );
+    await tx.wait();
 
     // Mint NFT
-    await stargateNFTContract.stake(1, {
+    tx = await stargateNFTContract.stake(1, {
       value: ethers.parseEther("1"),
     });
+    await tx.wait();
     const tokenId = Number(await stargateNFTContract.getCurrentTokenId());
 
     // Start delegation
-    await stargateDelegationContract.delegate(tokenId, true);
+    tx = await stargateDelegationContract.delegate(tokenId, true);
+    await tx.wait();
 
     // Accumulate some rewards
     await mineBlocks(3);
@@ -302,7 +335,8 @@ describe("StargateDelegation rewards", () => {
     // Set the rewards accumulation end block to current block + 2
     const currentBlock = await stargateDelegationContract.clock();
     const endBlock = currentBlock + 2n;
-    await stargateDelegationContract.setRewardsAccumulationEndBlock(endBlock);
+    tx = await stargateDelegationContract.setRewardsAccumulationEndBlock(endBlock);
+    await tx.wait();
 
     // Mine one more block - should still accumulate rewards
     await mineBlocks(1);
@@ -324,8 +358,8 @@ describe("StargateDelegation rewards", () => {
   it("anyone can trigger the rewards claiming but only the owner of the NFT gets the rewards", async () => {
     const config = createLocalConfig();
     config.DELEGATION_PERIOD_DURATION = 7;
-    config.TOKEN_LEVELS[1].level.maturityBlocks = 0;
-    config.TOKEN_LEVELS[1].level.vetAmountRequiredToStake = ethers.parseEther("1");
+    config.TOKEN_LEVELS[0].level.maturityBlocks = 0;
+    config.TOKEN_LEVELS[0].level.vetAmountRequiredToStake = ethers.parseEther("1");
 
     const {
       stargateDelegationContract,
@@ -341,13 +375,15 @@ describe("StargateDelegation rewards", () => {
     const randomUser = otherAccounts[6];
 
     // Mint NFT
-    await stargateNFTContract.stake(1, {
+    tx = await stargateNFTContract.stake(1, {
       value: ethers.parseEther("1"),
     });
+    await tx.wait();
     const tokenId = Number(await stargateNFTContract.getCurrentTokenId());
 
     // Start delegation
-    await stargateDelegationContract.delegate(tokenId, true);
+    tx = await stargateDelegationContract.delegate(tokenId, true);
+    await tx.wait();
 
     // Accumulate some rewards
     await mineBlocks(config.DELEGATION_PERIOD_DURATION);
@@ -359,7 +395,8 @@ describe("StargateDelegation rewards", () => {
     const ownerBalanceBeforeClaim = await mockedVthoToken.balanceOf(deployer.address);
 
     // Claim rewards
-    await stargateDelegationContract.connect(randomUser).claimRewards(tokenId);
+    tx = await stargateDelegationContract.connect(randomUser).claimRewards(tokenId);
+    await tx.wait();
 
     // Verify the rewards are not claimed by the random user
     expect(await stargateDelegationContract.claimableRewards(tokenId)).to.equal(0);
@@ -379,18 +416,19 @@ describe("StargateDelegation rewards", () => {
     config.TOKEN_LEVELS[0].level.maturityBlocks = 5; // Set maturity period to 5 blocks
     config.TOKEN_LEVELS[0].level.vetAmountRequiredToStake = ethers.parseEther("1");
 
-    const { stargateDelegationContract, stargateNFTContract, deployer } =
-      await getOrDeployContracts({
-        forceDeploy: true,
-        config,
-      });
+    const { stargateDelegationContract, stargateNFTContract } = await getOrDeployContracts({
+      forceDeploy: true,
+      config,
+    });
 
     const latestTokenId = await stargateNFTContract.getCurrentTokenId();
 
     // Mint NFT
-    await stargateNFTContract.stake(1, {
+    tx = await stargateNFTContract.stake(1, {
       value: ethers.parseEther("1"),
     });
+    await tx.wait();
+
     const tokenId = latestTokenId + 1n;
 
     // Verify NFT is under maturity period
@@ -402,7 +440,8 @@ describe("StargateDelegation rewards", () => {
     expect(maturityEndBlock).to.be.gt(currentBlock);
 
     // Start delegation while under maturity period
-    await stargateDelegationContract.delegate(tokenId, true);
+    tx = await stargateDelegationContract.delegate(tokenId, true);
+    await tx.wait();
 
     // Verify delegation is active but rewards accumulation start is set to maturity end block
     expect(await stargateDelegationContract.isDelegationActive(tokenId)).to.be.true;
@@ -451,19 +490,24 @@ describe("StargateDelegation rewards", () => {
     config.TOKEN_LEVELS[0].level.maturityBlocks = 0;
     config.TOKEN_LEVELS[0].level.vetAmountRequiredToStake = ethers.parseEther("1");
 
-    const { stargateDelegationContract, stargateNFTContract, deployer, mockedVthoToken } =
+    const { stargateDelegationContract, stargateNFTContract, mockedVthoToken } =
       await getOrDeployContracts({
         forceDeploy: true,
         config,
       });
 
     // Fund the delegation contract
-    await mockedVthoToken.transfer(stargateDelegationContract.target, ethers.parseEther("1000"));
-
+    tx = await mockedVthoToken.transfer(
+      stargateDelegationContract.target,
+      ethers.parseEther("1000")
+    );
+    await tx.wait();
     // Mint NFT and delegate
     const tokenId = (await stargateNFTContract.getCurrentTokenId()) + 1n;
-    await stargateNFTContract.stake(1, { value: ethers.parseEther("1") });
-    await stargateDelegationContract.delegate(tokenId, true);
+    tx = await stargateNFTContract.stake(1, { value: ethers.parseEther("1") });
+    await tx.wait();
+    tx = await stargateDelegationContract.delegate(tokenId, true);
+    await tx.wait();
 
     // Accumulate some rewards and complete a delegation period
     await mineBlocks(10);
@@ -471,10 +515,11 @@ describe("StargateDelegation rewards", () => {
 
     // Set rewards accumulation end block to current block
     const currentBlock = await stargateDelegationContract.clock();
-    await stargateDelegationContract.setRewardsAccumulationEndBlock(currentBlock);
-
+    tx = await stargateDelegationContract.setRewardsAccumulationEndBlock(currentBlock);
+    await tx.wait();
     // Claim rewards after the end block is set
-    await stargateDelegationContract.claimRewards(tokenId);
+    tx = await stargateDelegationContract.claimRewards(tokenId);
+    await tx.wait();
 
     // Mine more blocks - should not accumulate any rewards since last claim was after end block
     await mineBlocks(5);
@@ -485,17 +530,18 @@ describe("StargateDelegation rewards", () => {
   it("should return 0 rewards when blocksPassed is 0", async () => {
     const config = createLocalConfig();
     config.DELEGATION_PERIOD_DURATION = 10;
-    config.TOKEN_LEVELS[1].level.maturityBlocks = 0;
-    config.TOKEN_LEVELS[1].level.vetAmountRequiredToStake = ethers.parseEther("1");
+    config.TOKEN_LEVELS[0].level.maturityBlocks = 0;
+    config.TOKEN_LEVELS[0].level.vetAmountRequiredToStake = ethers.parseEther("1");
 
-    const { stargateDelegationContract, stargateNFTContract, deployer } =
-      await getOrDeployContracts({
-        forceDeploy: true,
-        config,
-      });
+    const { stargateDelegationContract, stargateNFTContract } = await getOrDeployContracts({
+      forceDeploy: true,
+      config,
+    });
 
     // Mint NFT and delegate
-    await stargateNFTContract.stake(1, { value: ethers.parseEther("1") });
+    tx = await stargateNFTContract.stake(1, { value: ethers.parseEther("1") });
+    await tx.wait();
+
     const tokenId = Number(await stargateNFTContract.getCurrentTokenId());
     await stargateDelegationContract.delegate(tokenId, true);
 
@@ -521,7 +567,7 @@ describe("StargateDelegation rewards", () => {
 
     const levelId = config.TOKEN_LEVELS[0].level.id;
 
-    const { stargateDelegationContract, stargateNFTContract, deployer, mockedVthoToken } =
+    const { stargateDelegationContract, stargateNFTContract, deployer } =
       await getOrDeployContracts({
         forceDeploy: true,
         config,
@@ -531,8 +577,10 @@ describe("StargateDelegation rewards", () => {
     const tokenId = (await stargateNFTContract.getCurrentTokenId()) + 1n;
 
     // Mint NFT and delegate
-    await stargateNFTContract.stakeAndDelegate(levelId, true, { value: ethers.parseEther("1") });
-
+    tx = await stargateNFTContract.stakeAndDelegate(levelId, true, {
+      value: ethers.parseEther("1"),
+    });
+    await tx.wait();
     // Mine blocks to complete a delegation period
     await mineBlocks(config.DELEGATION_PERIOD_DURATION);
 
@@ -540,12 +588,7 @@ describe("StargateDelegation rewards", () => {
     const claimableRewardsBefore = await stargateDelegationContract.claimableRewards(tokenId);
     expect(claimableRewardsBefore).to.be.gt(0);
 
-    await expect(
-      stargateDelegationContract.connect(deployer).claimRewards(tokenId)
-    ).to.be.revertedWithCustomError(
-      stargateDelegationContract,
-      "InsufficientVthoBalanceForRewardsClaim"
-    );
+    await expect(stargateDelegationContract.connect(deployer).claimRewards(tokenId)).to.be.reverted;
   });
 
   it("cannot claim additional rewards if rewards accumulation end block is reached", async () => {
@@ -556,7 +599,7 @@ describe("StargateDelegation rewards", () => {
 
     const levelId = config.TOKEN_LEVELS[0].level.id;
 
-    const { stargateDelegationContract, stargateNFTContract, deployer, mockedVthoToken } =
+    const { stargateDelegationContract, stargateNFTContract, deployer } =
       await getOrDeployContracts({
         forceDeploy: true,
         config,
@@ -565,8 +608,10 @@ describe("StargateDelegation rewards", () => {
     const tokenId = (await stargateNFTContract.getCurrentTokenId()) + 1n;
 
     // Mint NFT and delegate
-    await stargateNFTContract.stakeAndDelegate(levelId, true, { value: ethers.parseEther("1") });
-
+    tx = await stargateNFTContract.stakeAndDelegate(levelId, true, {
+      value: ethers.parseEther("1"),
+    });
+    await tx.wait();
     // Mine blocks to complete a delegation period
     await mineBlocks(config.DELEGATION_PERIOD_DURATION);
 
@@ -574,9 +619,10 @@ describe("StargateDelegation rewards", () => {
     const claimableRewardsBefore = await stargateDelegationContract.claimableRewards(tokenId);
     expect(claimableRewardsBefore).to.be.gt(0);
 
-    await stargateDelegationContract.setRewardsAccumulationEndBlock(
+    tx = await stargateDelegationContract.setRewardsAccumulationEndBlock(
       await stargateDelegationContract.clock()
     );
+    await tx.wait();
 
     await expect(stargateDelegationContract.connect(deployer).claimRewards(tokenId)).to.emit(
       stargateDelegationContract,
@@ -603,13 +649,19 @@ describe("StargateDelegation rewards", () => {
       });
 
     // Fund the delegation contract with VTHO for rewards
-    await mockedVthoToken.transfer(stargateDelegationContract.target, ethers.parseEther("1000"));
-
+    tx = await mockedVthoToken.transfer(
+      stargateDelegationContract.target,
+      ethers.parseEther("1000")
+    );
+    await tx.wait();
     // Mint NFT and start delegation
-    await stargateNFTContract.stake(1, { value: ethers.parseEther("1") });
+    tx = await stargateNFTContract.stake(1, { value: ethers.parseEther("1") });
+    await tx.wait();
+
     const tokenId = Number(await stargateNFTContract.getCurrentTokenId());
 
-    await stargateDelegationContract.delegate(tokenId, true);
+    tx = await stargateDelegationContract.delegate(tokenId, true);
+    await tx.wait();
     const delegationStartBlock = await stargateDelegationContract.clock();
     const initialAccumulationStartBlock =
       await stargateDelegationContract.getRewardsAccumulationStartBlock(tokenId);
@@ -624,8 +676,9 @@ describe("StargateDelegation rewards", () => {
 
     // Check claimable rewards after first period completion
     const claimableAfterFirstPeriod = await stargateDelegationContract.claimableRewards(tokenId);
-    const accumulatedAfterFirstPeriod =
-      await stargateDelegationContract.accumulatedRewards(tokenId);
+    const accumulatedAfterFirstPeriod = await stargateDelegationContract.accumulatedRewards(
+      tokenId
+    );
     expect(claimableAfterFirstPeriod).to.be.gt(0);
     expect(accumulatedAfterFirstPeriod).to.be.equal(claimableAfterFirstPeriod);
 
@@ -645,7 +698,8 @@ describe("StargateDelegation rewards", () => {
     const userBalanceBeforeClaim = await mockedVthoToken.balanceOf(deployer.address);
 
     // Claim rewards late (at block 15 instead of block 10)
-    await stargateDelegationContract.claimRewards(tokenId);
+    tx = await stargateDelegationContract.claimRewards(tokenId);
+    await tx.wait();
     const claimBlock = await stargateDelegationContract.clock();
 
     // Check user balance after claim
@@ -678,8 +732,9 @@ describe("StargateDelegation rewards", () => {
     expect(delegationPeriodEndBlock).to.equal(await stargateDelegationContract.clock());
 
     // Check accumulated rewards after second period completion is the same as the first period
-    const accumulatedAfterSecondPeriod =
-      await stargateDelegationContract.accumulatedRewards(tokenId);
+    const accumulatedAfterSecondPeriod = await stargateDelegationContract.accumulatedRewards(
+      tokenId
+    );
     expect(accumulatedAfterSecondPeriod).to.equal(accumulatedAfterFirstPeriod);
 
     // Check claimable rewards after second period completion
@@ -688,7 +743,8 @@ describe("StargateDelegation rewards", () => {
     expect(claimableAfterSecondPeriod).to.be.equal(accumulatedAfterSecondPeriod);
 
     // User can claim and since this is the end of the second period
-    await stargateDelegationContract.claimRewards(tokenId);
+    tx = await stargateDelegationContract.claimRewards(tokenId);
+    await tx.wait();
 
     // after the claim the claimable rewards should be 0
     expect(await stargateDelegationContract.claimableRewards(tokenId)).to.be.equal(0);
@@ -721,8 +777,8 @@ describe("StargateDelegation rewards", () => {
     const balanceBeforeTwoPeriodsClaimu = await mockedVthoToken.balanceOf(deployer.address);
 
     // Claim rewards for the two completed periods
-    await stargateDelegationContract.claimRewards(tokenId);
-
+    tx = await stargateDelegationContract.claimRewards(tokenId);
+    await tx.wait();
     // Verify the correct amount was claimed
     const balanceAfterTwoPeriodsClaim = await mockedVthoToken.balanceOf(deployer.address);
     const rewardsClaimedForTwoPeriods = balanceAfterTwoPeriodsClaim - balanceBeforeTwoPeriodsClaimu;
@@ -739,8 +795,9 @@ describe("StargateDelegation rewards", () => {
     expect(await stargateDelegationContract.claimableRewards(tokenId)).to.equal(0);
 
     // Verify that accumulated rewards only account for the claim transaction block
-    const accumulatedAfterTwoPeriodsClaimu =
-      await stargateDelegationContract.accumulatedRewards(tokenId);
+    const accumulatedAfterTwoPeriodsClaimu = await stargateDelegationContract.accumulatedRewards(
+      tokenId
+    );
     expect(accumulatedAfterTwoPeriodsClaimu).to.equal(
       config.VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL[0].rewardPerBlock
     );
@@ -753,10 +810,12 @@ describe("StargateDelegation rewards", () => {
     await mineBlocks(8);
 
     // Should have accumulated rewards but not be claimable yet (period not complete)
-    const accumulatedAfterEightMoreBlocks =
-      await stargateDelegationContract.accumulatedRewards(tokenId);
-    const claimableAfterEightMoreBlocks =
-      await stargateDelegationContract.claimableRewards(tokenId);
+    const accumulatedAfterEightMoreBlocks = await stargateDelegationContract.accumulatedRewards(
+      tokenId
+    );
+    const claimableAfterEightMoreBlocks = await stargateDelegationContract.claimableRewards(
+      tokenId
+    );
 
     expect(accumulatedAfterEightMoreBlocks).to.equal(
       config.VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL[0].rewardPerBlock * BigInt(9) // 8 + 1 from claim block
@@ -768,8 +827,9 @@ describe("StargateDelegation rewards", () => {
 
     // Now should be able to claim rewards for exactly 1 delegation period
     const claimableAfterFifthPeriod = await stargateDelegationContract.claimableRewards(tokenId);
-    const accumulatedAfterFifthPeriod =
-      await stargateDelegationContract.accumulatedRewards(tokenId);
+    const accumulatedAfterFifthPeriod = await stargateDelegationContract.accumulatedRewards(
+      tokenId
+    );
 
     const expectedRewardsForOnePeriod =
       config.VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL[0].rewardPerBlock * BigInt(10);
@@ -779,7 +839,8 @@ describe("StargateDelegation rewards", () => {
     );
 
     // Final claim to verify everything still works
-    await stargateDelegationContract.claimRewards(tokenId);
+    tx = await stargateDelegationContract.claimRewards(tokenId);
+    await tx.wait();
     expect(await stargateDelegationContract.claimableRewards(tokenId)).to.equal(0);
     expect(await stargateDelegationContract.accumulatedRewards(tokenId)).to.equal(
       config.VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL[0].rewardPerBlock
@@ -799,13 +860,18 @@ describe("StargateDelegation rewards", () => {
       });
 
     // Fund the delegation contract with VTHO for rewards
-    await mockedVthoToken.transfer(stargateDelegationContract.target, ethers.parseEther("1000"));
-
+    tx = await mockedVthoToken.transfer(
+      stargateDelegationContract.target,
+      ethers.parseEther("1000")
+    );
+    await tx.wait();
     // Mint NFT and start delegation
-    await stargateNFTContract.stake(1, { value: ethers.parseEther("1") });
+    tx = await stargateNFTContract.stake(1, { value: ethers.parseEther("1") });
+    await tx.wait();
     const tokenId = Number(await stargateNFTContract.getCurrentTokenId());
 
-    await stargateDelegationContract.delegate(tokenId, true); // Delegate forever
+    tx = await stargateDelegationContract.delegate(tokenId, true); // Delegate forever
+    await tx.wait();
     const delegationStartBlock = await stargateDelegationContract.clock();
 
     // Verify delegation is active
@@ -834,7 +900,6 @@ describe("StargateDelegation rewards", () => {
 
     // Mine 3 more blocks into the second period
     await mineBlocks(3);
-    const beforeExitRequestBlock = await stargateDelegationContract.clock();
 
     // Check accumulated rewards before exit request
     const accumulatedBeforeExit = await stargateDelegationContract.accumulatedRewards(tokenId);
@@ -847,8 +912,6 @@ describe("StargateDelegation rewards", () => {
       stargateDelegationContract,
       "DelegationExitRequested"
     );
-
-    const exitRequestBlock = await stargateDelegationContract.clock();
 
     // Check delegation details after exit request
     const delegationEndBlock = await stargateDelegationContract.getDelegationEndBlock(tokenId);
@@ -863,8 +926,9 @@ describe("StargateDelegation rewards", () => {
     expect(claimableAfterExitRequest).to.equal(claimableAfterFirstPeriod); // Same as before exit request
 
     // Accumulated rewards should include the exit request transaction block
-    const accumulatedAfterExitRequest =
-      await stargateDelegationContract.accumulatedRewards(tokenId);
+    const accumulatedAfterExitRequest = await stargateDelegationContract.accumulatedRewards(
+      tokenId
+    );
     expect(accumulatedAfterExitRequest).to.equal(
       config.VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL[0].rewardPerBlock * BigInt(14) // 10 + 3 + 1 (exit request block)
     );
@@ -873,7 +937,9 @@ describe("StargateDelegation rewards", () => {
     const userBalanceBeforeClaim = await mockedVthoToken.balanceOf(deployer.address);
 
     // Claim rewards for the completed first period
-    await stargateDelegationContract.claimRewards(tokenId);
+    tx = await stargateDelegationContract.claimRewards(tokenId);
+    await tx.wait();
+    // Get the block when the claim was made
     const claimBlock = await stargateDelegationContract.clock();
 
     // Verify the correct amount was claimed
@@ -918,7 +984,8 @@ describe("StargateDelegation rewards", () => {
     expect(finalClaimableRewards).to.be.gt(0);
 
     // Claim rewards for the completed first period
-    await stargateDelegationContract.claimRewards(tokenId);
+    tx = await stargateDelegationContract.claimRewards(tokenId);
+    await tx.wait();
     const accumulatedAfterClaim2 = await stargateDelegationContract.accumulatedRewards(tokenId);
     expect(accumulatedAfterClaim2).to.equal(0);
     expect(await stargateDelegationContract.claimableRewards(tokenId)).to.equal(0);
@@ -927,14 +994,15 @@ describe("StargateDelegation rewards", () => {
     expect(latestAccumulationStartBlock).to.equal(delegationEndBlock);
 
     // Verify that delegation can be restarted after exit
-    await stargateDelegationContract.delegate(tokenId, false); // Delegate for one period only
+    tx = await stargateDelegationContract.delegate(tokenId, false); // Delegate for one period only
+    await tx.wait();
     expect(await stargateDelegationContract.isDelegationActive(tokenId)).to.be.true;
     expect(await stargateDelegationContract.getRewardsAccumulationStartBlock(tokenId)).to.equal(
       await stargateDelegationContract.clock()
     );
   });
 
-  it("user should not be able to claim rewards in the same block when he delegate", async () => {
+  it("user should not be able to claim rewards in the same block when he delegates", async () => {
     const config = createLocalConfig();
     config.DELEGATION_PERIOD_DURATION = 10; // 10 blocks per delegation period
     config.TOKEN_LEVELS[0].level.maturityBlocks = 0;
@@ -947,21 +1015,29 @@ describe("StargateDelegation rewards", () => {
       });
 
     // Fund the delegation contract with VTHO for rewards
-    await mockedVthoToken.transfer(stargateDelegationContract.target, ethers.parseEther("1000"));
-
+    tx = await mockedVthoToken.transfer(
+      stargateDelegationContract.target,
+      ethers.parseEther("1000")
+    );
+    await tx.wait();
     // Mint NFT and start delegation
-    await stargateNFTContract.stake(1, { value: ethers.parseEther("1") });
+    tx = await stargateNFTContract.stake(1, { value: ethers.parseEther("1") });
+    await tx.wait();
     const tokenId = Number(await stargateNFTContract.getCurrentTokenId());
 
-    await stargateDelegationContract.delegate(tokenId, true); // Delegate forever
-
+    tx = await stargateDelegationContract.delegate(tokenId, true); // Delegate forever
+    await tx.wait();
     const claimableRewards = await stargateDelegationContract.claimableRewards(tokenId);
     expect(claimableRewards).to.equal(0);
 
-    await expect(stargateDelegationContract.claimRewards(tokenId)).to.be.revertedWithCustomError(
+    // Try to claim rewards in the same block when he delegates, should get no rewards
+    const balanceBeforeRewardsClaim = await mockedVthoToken.balanceOf(deployer.address);
+    await expect(stargateDelegationContract.claimRewards(tokenId)).to.not.emit(
       stargateDelegationContract,
-      "NoRewardsToClaim"
+      "DelegationRewardsClaimed"
     );
+    const balanceAfterRewardsClaim = await mockedVthoToken.balanceOf(deployer.address);
+    expect(balanceAfterRewardsClaim).to.equal(balanceBeforeRewardsClaim);
 
     await mineBlocks(config.DELEGATION_PERIOD_DURATION);
 

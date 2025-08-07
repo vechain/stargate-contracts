@@ -21,7 +21,7 @@ export const waitForNextBlock = async () => {
   // Send a minimal transaction to trigger a new block
   const tx = await signer.sendTransaction({
     to: ethers.ZeroAddress, // Zero address
-    value: 1n, // Minimal value
+    value: 0, // Minimal value
     gasLimit: 21000, // Standard gas limit for simple transfer
   });
 

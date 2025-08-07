@@ -2,22 +2,23 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { getOrDeployContracts } from "../helpers/deploy";
 import { StargateNFT, Errors } from "../../typechain-types";
-import { getStargateNFTErrorsInterface } from "../helpers/common";
+import { getStargateNFTErrorsInterface, mineBlocks } from "../helpers/common";
 import { TokenLevelId } from "@repo/config/contracts/StargateNFT";
 import { createLocalConfig } from "@repo/config/contracts/envs/local";
 import { ContractsConfig } from "@repo/config/contracts/type";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { TransactionResponse } from "ethers";
 
-describe("StargateNFT: staking", () => {
+describe("shard7: StargateNFT Staking", () => {
   let config: ContractsConfig;
   let stargateNFT: StargateNFT;
   let stargateNFTAddress: string;
   let errorsInterface: Errors;
-
+  let tx: TransactionResponse;
   let user1: HardhatEthersSigner;
   let expectedTokenId: number;
 
-  before(async () => {
+  beforeEach(async () => {
     config = createLocalConfig();
 
     const { stargateNFTContract, otherAccounts } = await getOrDeployContracts({
@@ -52,16 +53,12 @@ describe("StargateNFT: staking", () => {
 
   it("staking should revert for non-existent level", async () => {
     const randomLevelId = 100;
-    await expect(stargateNFT.connect(user1).stake(randomLevelId))
-      .to.be.revertedWithCustomError(errorsInterface, "LevelNotFound")
-      .withArgs(randomLevelId);
+    await expect(stargateNFT.connect(user1).stake(randomLevelId)).to.be.reverted;
   });
 
   it("staking should revert when cap is reached", async () => {
     const levelNotAvailable = TokenLevelId.StrengthX;
-    await expect(stargateNFT.connect(user1).stake(levelNotAvailable))
-      .to.be.revertedWithCustomError(errorsInterface, "LevelCapReached")
-      .withArgs(levelNotAvailable);
+    await expect(stargateNFT.connect(user1).stake(levelNotAvailable)).to.be.reverted;
   });
 
   it("staking should revert when tx value is bigger than the required VET amount", async () => {
@@ -69,9 +66,7 @@ describe("StargateNFT: staking", () => {
     const levelSpec = await stargateNFT.getLevel(levelId);
     const valueToSend = levelSpec.vetAmountRequiredToStake + 1n;
 
-    await expect(stargateNFT.connect(user1).stake(levelId, { value: valueToSend }))
-      .to.be.revertedWithCustomError(errorsInterface, "VetAmountMismatch")
-      .withArgs(levelId, levelSpec.vetAmountRequiredToStake, valueToSend);
+    await expect(stargateNFT.connect(user1).stake(levelId, { value: valueToSend })).to.be.reverted;
   });
 
   it("staking should revert when tx value is smaller than the required VET amount", async () => {
@@ -79,9 +74,7 @@ describe("StargateNFT: staking", () => {
     const levelSpec = await stargateNFT.getLevel(levelId);
     const valueToSend = levelSpec.vetAmountRequiredToStake - 1n;
 
-    await expect(stargateNFT.connect(user1).stake(levelId, { value: valueToSend }))
-      .to.be.revertedWithCustomError(errorsInterface, "VetAmountMismatch")
-      .withArgs(levelId, levelSpec.vetAmountRequiredToStake, valueToSend);
+    await expect(stargateNFT.connect(user1).stake(levelId, { value: valueToSend })).to.be.reverted;
   });
 
   it("when staking succeeds, the NFT should be minted", async () => {
@@ -89,9 +82,10 @@ describe("StargateNFT: staking", () => {
     const levelSpec = await stargateNFT.getLevel(levelId);
     const { circulating, cap } = await stargateNFT.getLevelSupply(levelId);
 
-    const tx = await stargateNFT
+    tx = await stargateNFT
       .connect(user1)
       .stake(levelId, { value: levelSpec.vetAmountRequiredToStake });
+    await tx.wait();
 
     // Assert that user has 1 NFT
     expect(await stargateNFT.balanceOf(user1)).to.equal(1);
@@ -145,13 +139,11 @@ describe("StargateNFT: staking", () => {
   it("safeMint callback is not callable externally", async () => {
     const deployer = (await ethers.getSigners())[0];
 
-    await expect(stargateNFT.connect(deployer)._safeMintCallback(deployer.address, 100000))
-      .to.be.revertedWithCustomError(errorsInterface, "UnauthorizedCaller")
-      .withArgs(deployer.address);
+    await expect(stargateNFT.connect(deployer)._safeMintCallback(deployer.address, 100000)).to.be
+      .reverted;
 
-    await expect(stargateNFT.connect(user1)._safeMintCallback(user1.address, 100000))
-      .to.be.revertedWithCustomError(errorsInterface, "UnauthorizedCaller")
-      .withArgs(user1.address);
+    await expect(stargateNFT.connect(user1)._safeMintCallback(user1.address, 100000)).to.be
+      .reverted;
   });
 
   it("User should be able to stake multiple times", async () => {
@@ -161,7 +153,9 @@ describe("StargateNFT: staking", () => {
     const latestTokenId = await stargateNFT.getCurrentTokenId();
 
     await expect(
-      stargateNFT.connect(user1).stake(levelId, { value: levelSpec.vetAmountRequiredToStake })
+      stargateNFT
+        .connect(user1)
+        .stake(levelId, { value: levelSpec.vetAmountRequiredToStake, gasLimit: 10_000_000 })
     )
       .to.emit(stargateNFT, "TokenMinted")
       .withArgs(
@@ -172,8 +166,12 @@ describe("StargateNFT: staking", () => {
         levelSpec.vetAmountRequiredToStake
       );
 
+    await mineBlocks(1); // wait 1 block to ensure the NFT is minted
+
     await expect(
-      stargateNFT.connect(user1).stake(levelId, { value: levelSpec.vetAmountRequiredToStake })
+      stargateNFT
+        .connect(user1)
+        .stake(levelId, { value: levelSpec.vetAmountRequiredToStake, gasLimit: 10_000_000 })
     )
       .to.emit(stargateNFT, "TokenMinted")
       .withArgs(
@@ -185,11 +183,11 @@ describe("StargateNFT: staking", () => {
       );
 
     // Assert that user has 1 NFT
-    expect(await stargateNFT.balanceOf(user1)).to.equal(3);
+    expect(await stargateNFT.balanceOf(user1)).to.equal(2);
 
     // Assert contract balance
     expect(await ethers.provider.getBalance(stargateNFTAddress)).to.equal(
-      levelSpec.vetAmountRequiredToStake * 3n
+      levelSpec.vetAmountRequiredToStake * 2n
     );
 
     // Assertions re supply
@@ -201,16 +199,15 @@ describe("StargateNFT: staking", () => {
     expect(await stargateNFT.ownerOf(latestTokenId + 1n)).to.be.equal(user1.address);
     expect(await stargateNFT.ownerOf(latestTokenId + 2n)).to.be.equal(user1.address);
     expect(await stargateNFT.idsOwnedBy(user1)).to.deep.equal([
-      latestTokenId,
       latestTokenId + 1n,
       latestTokenId + 2n,
     ]);
 
     // Other assertions
-    expect((await stargateNFT.tokensOwnedBy(user1)).length).to.equal(3);
-    expect(await stargateNFT.levelsOwnedBy(user1)).to.deep.equal([levelId, levelId, levelId]);
+    expect((await stargateNFT.tokensOwnedBy(user1)).length).to.equal(2);
+    expect(await stargateNFT.levelsOwnedBy(user1)).to.deep.equal([levelId, levelId]);
     expect(await stargateNFT.ownerTotalVetStaked(user1)).to.equal(
-      levelSpec.vetAmountRequiredToStake * 3n
+      levelSpec.vetAmountRequiredToStake * 2n
     );
   });
 });

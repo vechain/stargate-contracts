@@ -1,7 +1,7 @@
-import { LevelAndSupply } from "./StargateNFT";
+import { type LevelAndSupply, type WhitelistEntryInit } from "./StargateNFT";
 
 export type ContractsConfig = {
-  VITE_APP_ENV: "local" | "rewards" | "testnet" | "mainnet";
+  VITE_APP_ENV: "local" | "testnet" | "mainnet";
   CONTRACTS_ADMIN_ADDRESS: string;
   // Legacy contracts
   TOKEN_AUCTION_CONTRACT_ADDRESS: string;
@@ -17,6 +17,7 @@ export type ContractsConfig = {
   TOKEN_LEVELS: LevelAndSupply[];
   LEGACY_LAST_TOKEN_ID: number;
   BASE_TOKEN_URI: string;
+  WHITELIST_ENTRIES_V2: WhitelistEntryInit[];
   // NodeManagement contract
   NODE_MANAGEMENT_CONTRACT_ADDRESS: string;
 };

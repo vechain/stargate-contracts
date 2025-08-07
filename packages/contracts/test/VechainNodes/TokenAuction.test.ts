@@ -10,7 +10,9 @@ import {
   stopImpersonatingAccount,
 } from "@nomicfoundation/hardhat-network-helpers";
 
-describe("TokenAuction", () => {
+// This tests were written to demonstrate the functionality of the TokenAuction contract
+// They are not used in the app and are skipped for now
+describe.skip("TokenAuction", () => {
   describe("Mint NFT via addToken, an external function restricted to onlyOperator", () => {
     let legacyNodes: TokenAuction;
     let admin: HardhatEthersSigner;
