@@ -1,7 +1,7 @@
 import { createLocalConfig } from "@repo/config/contracts/envs/local";
 import { getOrDeployContracts } from "../helpers/deploy";
 import { ethers, expect } from "hardhat";
-import { mineBlocks } from "../helpers/common";
+import { getStargateNFTErrorsInterface, mineBlocks } from "../helpers/common";
 import { createLegacyNodeHolder } from "../helpers";
 import { MyERC20, StargateNFT } from "../../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
@@ -172,7 +172,12 @@ describe("shard12: StargateNFT Base Rewards", () => {
     expect(await stargateNFTContract.claimableVetGeneratedVtho(tokenId)).to.equal(0);
 
     // Claiming rewards again should revert and balance should remain the same
-    await expect(stargateNFTContract.connect(user).claimVetGeneratedVtho(tokenId)).to.be.reverted;
+    await expect(
+      stargateNFTContract.connect(user).claimVetGeneratedVtho(tokenId)
+    ).to.be.revertedWithCustomError(
+      await getStargateNFTErrorsInterface(),
+      "NoBaseVthoRewardsToClaim"
+    );
     expect(await mockedVthoToken.balanceOf(user.address)).to.equal(rewardsToClaim.toString());
   });
 
@@ -277,7 +282,10 @@ describe("shard12: StargateNFT Base Rewards", () => {
     expect(await mockedVthoToken.balanceOf(user.address)).to.equal(expectedRewards.toString());
 
     // The NFT should be burned
-    await expect(stargateNFTContract.ownerOf(legacyNodeId)).to.be.reverted;
+    await expect(stargateNFTContract.ownerOf(legacyNodeId)).to.be.revertedWithCustomError(
+      stargateNFTContract,
+      "ERC721NonexistentToken"
+    );
 
     // Last claim timestamp should be updated
     expect(await stargateNFTContract.getLastVetGeneratedVthoClaimTimestamp(legacyNodeId)).to.equal(
@@ -348,7 +356,10 @@ describe("shard12: StargateNFT Base Rewards", () => {
   });
 
   it("cannot claim rewards of non-existent NFT", async () => {
-    await expect(stargateNFTContract.claimVetGeneratedVtho(1000000)).to.be.reverted;
+    await expect(stargateNFTContract.claimVetGeneratedVtho(1000000)).to.be.revertedWithCustomError(
+      await getStargateNFTErrorsInterface(),
+      "TokenDoesNotExist"
+    );
   });
 
   it("Claim rewards should revert if there are not enough VTHO in the contract", async () => {
@@ -384,8 +395,12 @@ describe("shard12: StargateNFT Base Rewards", () => {
 
     const balanceBeforeClaim = await mockedVthoToken.balanceOf(user.address);
 
-    await expect(stargateNFTContract.connect(user).claimVetGeneratedVtho(legacyNodeId)).to.be
-      .reverted;
+    await expect(
+      stargateNFTContract.connect(user).claimVetGeneratedVtho(legacyNodeId)
+    ).to.be.revertedWithCustomError(
+      await getStargateNFTErrorsInterface(),
+      "InsufficientContractBalance"
+    );
 
     // User should not have received the rewards
     expect(await mockedVthoToken.balanceOf(user.address)).to.equal(balanceBeforeClaim.toString());
@@ -442,11 +457,13 @@ describe("shard12: StargateNFT Base Rewards", () => {
     expect(await stargateNFTContract.paused()).to.be.true;
 
     // Step 2: Users should not be able to claim rewards while paused
-    await expect(stargateNFTContract.connect(user1).claimVetGeneratedVtho(legacyNodeId1)).to.be
-      .reverted;
+    await expect(
+      stargateNFTContract.connect(user1).claimVetGeneratedVtho(legacyNodeId1)
+    ).to.be.revertedWithCustomError(stargateNFTContract, "EnforcedPause");
 
-    await expect(stargateNFTContract.connect(user2).claimVetGeneratedVtho(legacyNodeId2)).to.be
-      .reverted;
+    await expect(
+      stargateNFTContract.connect(user2).claimVetGeneratedVtho(legacyNodeId2)
+    ).to.be.revertedWithCustomError(stargateNFTContract, "EnforcedPause");
 
     // Step 3: Get the current timestamp to simulate the hardfork timestamp
     const hardforkTimestamp = await stargateNFTContract.timestamp();
@@ -501,11 +518,19 @@ describe("shard12: StargateNFT Base Rewards", () => {
     expect(await stargateNFTContract.claimableVetGeneratedVtho(legacyNodeId2)).to.equal(0);
 
     // Attempting to claim again should revert
-    await expect(stargateNFTContract.connect(user1).claimVetGeneratedVtho(legacyNodeId1)).to.be
-      .reverted;
+    await expect(
+      stargateNFTContract.connect(user1).claimVetGeneratedVtho(legacyNodeId1)
+    ).to.be.revertedWithCustomError(
+      await getStargateNFTErrorsInterface(),
+      "NoBaseVthoRewardsToClaim"
+    );
 
-    await expect(stargateNFTContract.connect(user2).claimVetGeneratedVtho(legacyNodeId2)).to.be
-      .reverted;
+    await expect(
+      stargateNFTContract.connect(user2).claimVetGeneratedVtho(legacyNodeId2)
+    ).to.be.revertedWithCustomError(
+      await getStargateNFTErrorsInterface(),
+      "NoBaseVthoRewardsToClaim"
+    );
 
     // Users' balances should remain unchanged
     expect(await mockedVthoToken.balanceOf(user1.address)).to.equal(expectedRewardsUser1);

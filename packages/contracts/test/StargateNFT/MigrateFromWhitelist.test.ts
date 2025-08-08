@@ -93,7 +93,10 @@ describe("shard10: StargateNFT Whitelisted Migration", () => {
       expect(tokenMetadata[1]).to.equal(StrengthLevel.Strength);
 
       // TokenId does not exist in StargateNFT - expect ownerOf to revert
-      await expect(stargateNFT.ownerOf(whitelistedTokenId)).to.be.reverted;
+      await expect(stargateNFT.ownerOf(whitelistedTokenId)).to.be.revertedWithCustomError(
+        stargateNFT,
+        "ERC721NonexistentToken"
+      );
 
       // User1 is staker in StargateNFT
       expect(await stargateNFT.balanceOf(await user1.getAddress())).to.equal(1);
@@ -331,7 +334,7 @@ describe("shard10: StargateNFT Whitelisted Migration", () => {
         stargateNFT.connect(user1).migrateAndDelegate(whitelistedTokenId, true, {
           value: mjolnirXSpec.vetAmountRequiredToStake,
         })
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(errorsInterface, "TokenNotEligible");
     });
 
     it("should be able to migrate a whitelisted tokenId after exiting delegation and unstaking", async () => {
@@ -355,7 +358,10 @@ describe("shard10: StargateNFT Whitelisted Migration", () => {
       ]);
 
       // and tokenId does not exist in StargateNFT
-      await expect(stargateNFT.ownerOf(whitelistedTokenId)).to.be.reverted;
+      await expect(stargateNFT.ownerOf(whitelistedTokenId)).to.be.revertedWithCustomError(
+        stargateNFT,
+        "ERC721NonexistentToken"
+      );
 
       // Assert that user has sufficient VET to migrate
       const mjolnirXSpec = await stargateNFT.getLevel(StrengthLevel.MjolnirX);
@@ -462,7 +468,10 @@ describe("shard10: StargateNFT Whitelisted Migration", () => {
       expect(await legacyNodes.ownerToId(await user1.getAddress())).to.equal(0);
 
       // TokenId does not exist in StargateNFT - expect ownerOf to revert
-      await expect(stargateNFT.ownerOf(whitelistedTokenId)).to.be.reverted;
+      await expect(stargateNFT.ownerOf(whitelistedTokenId)).to.be.revertedWithCustomError(
+        stargateNFT,
+        "ERC721NonexistentToken"
+      );
 
       // User1 is staker in StargateNFT
       expect(await stargateNFT.balanceOf(await user1.getAddress())).to.equal(1);
@@ -542,7 +551,7 @@ describe("shard10: StargateNFT Whitelisted Migration", () => {
       // Tx should revert
       await expect(
         stargateNFTContract.connect(maliciousUser).migrateAndDelegate(0, true, { value: 0 })
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(stargateNFTContract, "ValueCannotBeZero");
     });
   });
 
@@ -612,7 +621,7 @@ describe("shard10: StargateNFT Whitelisted Migration", () => {
       // Tx should go through migration (not migrateFromWhitelist) and revert
       await expect(
         stargateNFT.connect(randomUser).migrateAndDelegate(randomTokenId, true, { value: 0 })
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(errorsInterface, "TokenNotEligible");
     });
 
     it("should revert if whitelisted token belongs to a different address on legacy contract", async () => {
@@ -653,7 +662,7 @@ describe("shard10: StargateNFT Whitelisted Migration", () => {
       await tx.wait();
       // Tx should revert
       await expect(stargateNFT.connect(thirdUser).migrateAndDelegate(tokenId, true, { value: 0 }))
-        .to.be.reverted;
+        .to.be.revertedWithCustomError(errorsInterface, "NotOwner");
     });
 
     it("should revert if user does not provide the exact amount of VET required to migrate", async () => {
@@ -696,17 +705,17 @@ describe("shard10: StargateNFT Whitelisted Migration", () => {
         stargateNFT
           .connect(whitelistedUser)
           .migrateAndDelegate(whitelistedTokenId, true, { value: 0 })
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(errorsInterface, "VetAmountMismatch");
       await expect(
         stargateNFT.connect(whitelistedUser).migrateAndDelegate(whitelistedTokenId, true, {
           value: mjolnirXSpec.vetAmountRequiredToStake - 1n,
         })
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(errorsInterface, "VetAmountMismatch");
       await expect(
         stargateNFT.connect(whitelistedUser).migrateAndDelegate(whitelistedTokenId, true, {
           value: mjolnirXSpec.vetAmountRequiredToStake + 1n,
         })
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(errorsInterface, "VetAmountMismatch");
     });
   });
 });

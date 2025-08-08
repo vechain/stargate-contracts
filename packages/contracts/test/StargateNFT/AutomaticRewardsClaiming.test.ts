@@ -406,7 +406,10 @@ describe("shard13: StargateNFT Rewards Auto Claiming", () => {
       }
 
       // Step 8: Verify that the NFT was burned (no longer exists)
-      await expect(stargateNFTContract.ownerOf(tokenId)).to.be.reverted;
+      await expect(stargateNFTContract.ownerOf(tokenId)).to.be.revertedWithCustomError(
+        stargateNFTContract,
+        "ERC721NonexistentToken"
+      );
 
       // Step 9: Calculate expected VTHO rewards based on the unstake transaction timestamp
       const expectedVthoRewards = await stargateNFTContract.calculateVTHO(
@@ -489,7 +492,10 @@ describe("shard13: StargateNFT Rewards Auto Claiming", () => {
       }
 
       // Step 9: Verify that the NFT was burned (no longer exists)
-      await expect(stargateNFTContract.ownerOf(tokenId)).to.be.reverted;
+      await expect(stargateNFTContract.ownerOf(tokenId)).to.be.revertedWithCustomError(
+        stargateNFTContract,
+        "ERC721NonexistentToken"
+      );
 
       // Step 10: Calculate expected base rewards
       const expectedBaseRewards = await stargateNFTContract.calculateVTHO(

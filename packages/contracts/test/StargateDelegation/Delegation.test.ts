@@ -92,7 +92,7 @@ describe("shard103: StargateDelegation Delegation", () => {
         stargateNFT
           .connect(deployer)
           .transferFrom(await deployer.getAddress(), otherAccounts[0].address, tokenId)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(stargateNFT, "TokenLocked");
 
       const baseURI = await stargateNFT.baseURI();
       const tokenURI = await stargateNFT.tokenURI(tokenId);
@@ -119,10 +119,14 @@ describe("shard103: StargateDelegation Delegation", () => {
       expect(await stargateDelegation.isDelegationActive(tokenId)).to.be.true;
 
       // Try to delegate the same NFT again
-      await expect(stargateDelegation.delegate(tokenId, false)).to.be.reverted;
+      await expect(stargateDelegation.delegate(tokenId, false))
+        .to.be.revertedWithCustomError(stargateDelegation, "NFTAlreadyDelegated")
+        .withArgs(tokenId);
 
       // Also test with auto-renewal enabled
-      await expect(stargateDelegation.delegate(tokenId, true)).to.be.reverted;
+      await expect(stargateDelegation.delegate(tokenId, true))
+        .to.be.revertedWithCustomError(stargateDelegation, "NFTAlreadyDelegated")
+        .withArgs(tokenId);
     });
   });
 
@@ -362,7 +366,7 @@ describe("shard103: StargateDelegation Delegation", () => {
         stargateNFT
           .connect(deployer)
           .transferFrom(await deployer.getAddress(), otherAccounts[0].address, tokenId)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(stargateNFT, "TokenLocked");
 
       // uri should return locked metadata
       let baseURI = await stargateNFT.baseURI();
@@ -514,10 +518,16 @@ describe("shard103: StargateDelegation Delegation", () => {
       expect(newCurrentBlock).to.be.greaterThan(endBlock);
 
       // Try to delegate - should fail with RewardsAccumulationPeriodEnded
-      await expect(stargateDelegation.delegate(tokenId, false)).to.be.reverted;
+      await expect(stargateDelegation.delegate(tokenId, false)).to.be.revertedWithCustomError(
+        stargateDelegation,
+        "RewardsAccumulationPeriodEnded"
+      );
 
       // Also test with auto-renewal enabled
-      await expect(stargateDelegation.delegate(tokenId, true)).to.be.reverted;
+      await expect(stargateDelegation.delegate(tokenId, true)).to.be.revertedWithCustomError(
+        stargateDelegation,
+        "RewardsAccumulationPeriodEnded"
+      );
 
       // Verify the NFT is still not delegated
       expect(await stargateDelegation.isDelegationActive(tokenId)).to.be.false;
@@ -564,10 +574,14 @@ describe("shard103: StargateDelegation Delegation", () => {
       expect(rewardRate).to.equal(0);
 
       // Try to delegate - should fail with InvalidNFTLevel
-      await expect(stargateDelegation.delegate(tokenId, false)).to.be.reverted;
+      await expect(stargateDelegation.delegate(tokenId, false))
+        .to.be.revertedWithCustomError(stargateDelegation, "InvalidNFTLevel")
+        .withArgs(tokenId, levelId);
 
       // Also test with auto-renewal enabled
-      await expect(stargateDelegation.delegate(tokenId, true)).to.be.reverted;
+      await expect(stargateDelegation.delegate(tokenId, true))
+        .to.be.revertedWithCustomError(stargateDelegation, "InvalidNFTLevel")
+        .withArgs(tokenId, levelId);
 
       // Verify the NFT is still not delegated
       expect(await stargateDelegation.isDelegationActive(tokenId)).to.be.false;
@@ -621,15 +635,18 @@ describe("shard103: StargateDelegation Delegation", () => {
       expect(await stargateDelegation.isDelegationActive(tokenId1)).to.be.false;
 
       // Try to exit delegation for non-delegated NFT - should fail
-      await expect(stargateDelegation.requestDelegationExit(tokenId1)).to.be.reverted;
+      await expect(stargateDelegation.requestDelegationExit(tokenId1))
+        .to.be.revertedWithCustomError(stargateDelegation, "NFTNotDelegated")
+        .withArgs(tokenId1);
     });
 
     it("cannot get currentDelegationPeriodEndBlock of an NFT that does not exist", async () => {
       const nonExistentTokenId = 999; // This token ID should not exist
 
       // Try to get currentDelegationPeriodEndBlock for non-existent NFT - should fail
-      await expect(stargateDelegation.currentDelegationPeriodEndBlock(nonExistentTokenId)).to.be
-        .reverted;
+      await expect(stargateDelegation.currentDelegationPeriodEndBlock(nonExistentTokenId))
+        .to.be.revertedWithCustomError(stargateDelegation, "NFTNotDelegated")
+        .withArgs(nonExistentTokenId);
     });
 
     it("cannot exit delegation if caller is not the owner of the delegated NFT", async () => {
@@ -640,8 +657,9 @@ describe("shard103: StargateDelegation Delegation", () => {
       const nonOwner = otherAccounts[0];
 
       // Try to exit delegation as non-owner - should fail
-      await expect(stargateDelegation.connect(nonOwner).requestDelegationExit(tokenId2)).to.be
-        .reverted;
+      await expect(stargateDelegation.connect(nonOwner).requestDelegationExit(tokenId2))
+        .to.be.revertedWithCustomError(stargateDelegation, "UnauthorizedUser")
+        .withArgs(nonOwner.address);
 
       // Verify the NFT is still delegated after failed attempt
       expect(await stargateDelegation.isDelegationActive(tokenId2)).to.be.true;
@@ -887,7 +905,10 @@ describe("shard103: StargateDelegation Delegation", () => {
       expect(await stargateDelegation.isDelegationActive(tokenId)).to.be.true;
 
       // Request delegation exit - should fail
-      await expect(stargateDelegation.requestDelegationExit(tokenId)).to.be.reverted;
+      await expect(stargateDelegation.requestDelegationExit(tokenId)).to.be.revertedWithCustomError(
+        stargateDelegation,
+        "DelegationExitAlreadyRequested"
+      );
 
       // Verify the exit block remains unchanged after failed request
       const exitBlockAfterFailedRequest = await stargateDelegation.getDelegationEndBlock(tokenId);
@@ -935,7 +956,10 @@ describe("shard103: StargateDelegation Delegation", () => {
       );
 
       // Try to request delegation exit again (second time) - should fail
-      await expect(stargateDelegation.requestDelegationExit(tokenId)).to.be.reverted;
+      await expect(stargateDelegation.requestDelegationExit(tokenId)).to.be.revertedWithCustomError(
+        stargateDelegation,
+        "DelegationExitAlreadyRequested"
+      );
 
       // Verify delegation is still active until second exit block is reached
       expect(await stargateDelegation.isDelegationActive(tokenId)).to.be.true;

@@ -7,6 +7,7 @@ import {
   NodeManagementV1,
   NodeManagementV2,
   NodeManagementV3,
+  StargateNFT,
   TokenAuction,
 } from "../../typechain-types";
 import { deployProxy, upgradeProxy } from "../../scripts/helpers";
@@ -20,6 +21,7 @@ describe("shard1000: NodeManagement", function () {
   let otherAccounts: HardhatEthersSigner[];
   let nodeManagementContract: NodeManagementV3;
   let legacyNodesContract: TokenAuction;
+  let stargateNFTContract: StargateNFT;
 
   beforeEach(async function () {
     const contracts = await getOrDeployContracts({
@@ -30,6 +32,7 @@ describe("shard1000: NodeManagement", function () {
 
     nodeManagementContract = contracts.nodeManagementContract;
     legacyNodesContract = contracts.legacyNodesContract;
+    stargateNFTContract = contracts.stargateNFTContract;
   });
 
   describe("Contract upgradeability", () => {
@@ -40,7 +43,7 @@ describe("shard1000: NodeManagement", function () {
           deployer.address,
           deployer.address
         )
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(nodeManagementContract, "InvalidInitialization");
     });
 
     it("User with UPGRADER_ROLE should be able to upgrade the contract", async function () {
@@ -263,7 +266,7 @@ describe("shard1000: NodeManagement", function () {
 
       await expect(
         nodeManagementContract.connect(otherAccount).delegateNode(deployer.address, nodeId)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(nodeManagementContract, "NodeManagementNotNodeOwner");
     });
 
     it("Should revert if node owner tries to delegate themselves", async function () {
@@ -272,8 +275,9 @@ describe("shard1000: NodeManagement", function () {
       const nodeId = await legacyNodesContract.ownerToId(deployer.address);
 
       // Node cannot be delegated to themselves
-      await expect(nodeManagementContract.connect(deployer).delegateNode(deployer.address, nodeId))
-        .to.be.reverted;
+      await expect(
+        nodeManagementContract.connect(deployer).delegateNode(deployer.address, nodeId)
+      ).to.be.revertedWithCustomError(nodeManagementContract, "NodeManagementSelfDelegation");
     });
 
     it("Should revert if node is getting delegated to the zero address", async function () {
@@ -285,7 +289,7 @@ describe("shard1000: NodeManagement", function () {
       // Node cannot be delegated to the zero address
       await expect(
         nodeManagementContract.connect(deployer).delegateNode(ethers.ZeroAddress, nodeId)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(nodeManagementContract, "NodeManagementZeroAddress");
     });
 
     it("A user can have multiple nodes delegated to them", async function () {
@@ -366,8 +370,12 @@ describe("shard1000: NodeManagement", function () {
         .delegateNode(otherAccounts[5].address, nodeId);
       await tx.wait();
 
-      await expect(nodeManagementContract.connect(otherAccounts[8]).removeNodeDelegation(nodeId)).to
-        .be.reverted;
+      await expect(
+        nodeManagementContract.connect(otherAccounts[8]).removeNodeDelegation(nodeId)
+      ).to.be.revertedWithCustomError(
+        nodeManagementContract,
+        "NodeManagementNotNodeOwnerOrManager"
+      );
     });
 
     it("Should revert if non node owner is trying to remove delegation if node is not delegated", async function () {
@@ -376,8 +384,9 @@ describe("shard1000: NodeManagement", function () {
       const nodeId = await legacyNodesContract.ownerToId(deployer.address);
 
       // Node should not be delegated at this point so this should revert
-      await expect(nodeManagementContract.connect(deployer).removeNodeDelegation(nodeId)).to.be
-        .reverted;
+      await expect(
+        nodeManagementContract.connect(deployer).removeNodeDelegation(nodeId)
+      ).to.be.revertedWithCustomError(nodeManagementContract, "NodeManagementNodeNotDelegated");
     });
 
     it("If a node is downgraded to level NONE, it cannot be delegated", async function () {
@@ -395,7 +404,7 @@ describe("shard1000: NodeManagement", function () {
 
       await expect(
         nodeManagementContract.connect(deployer).delegateNode(otherAccounts[5].address, nodeId)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(nodeManagementContract, "NodeManagementNotNodeOwner");
     });
 
     it("If a node is transferred new owner can re-delegate to another account to manage", async function () {
@@ -755,7 +764,9 @@ describe("shard1000: NodeManagement", function () {
 
     it("Should return false for zero address", async function () {
       // Check if zero address is a holder
-      await expect(nodeManagementContract.isNodeHolder(ethers.ZeroAddress)).to.be.reverted;
+      await expect(
+        nodeManagementContract.isNodeHolder(ethers.ZeroAddress)
+      ).to.be.revertedWithCustomError(stargateNFTContract, "ERC721InvalidOwner");
 
       const isHolder = await nodeManagementContract.isNodeHolder(
         ethers.Wallet.createRandom().address
@@ -955,7 +966,9 @@ describe("shard1000: NodeManagement", function () {
 
     it("Should return empty array for zero address", async function () {
       // Check nodes for zero address
-      await expect(nodeManagementContract.getUserNodes(ethers.ZeroAddress)).to.be.reverted;
+      await expect(
+        nodeManagementContract.getUserNodes(ethers.ZeroAddress)
+      ).to.be.revertedWithCustomError(stargateNFTContract, "ERC721InvalidOwner");
 
       // Should return empty array
       const nodesInfo = await nodeManagementContract.getUserNodes(

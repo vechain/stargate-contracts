@@ -313,7 +313,9 @@ describe("shard101: StargateDelegation Upgradeability", () => {
       expect(result).to.be.a("bigint");
 
       // Test that functions that should revert still do (using currentDelegationPeriodEndBlock)
-      await expect(stargateDelegationV2.currentDelegationPeriodEndBlock(999999)).to.be.reverted;
+      await expect(
+        stargateDelegationV2.currentDelegationPeriodEndBlock(999999)
+      ).to.be.revertedWithCustomError(stargateDelegationV2, "NFTNotDelegated");
 
       // Test admin functions still work after upgrade
       tx = await stargateDelegationV2
