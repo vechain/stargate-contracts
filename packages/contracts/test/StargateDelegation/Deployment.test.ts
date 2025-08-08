@@ -92,7 +92,7 @@ describe("shard100: StargateDelegation Deployment", () => {
         delegationPeriod: config.DELEGATION_PERIOD_DURATION, // 10 blocks
         operator: config.STARGATE_DELEGATION_OPERATOR_ADDRESS,
       })
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(stargateDelegationContract, "InvalidInitialization");
   });
 
   // TODO: this test is skipped because the sdk does not propoerly

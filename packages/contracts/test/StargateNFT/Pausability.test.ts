@@ -40,7 +40,10 @@ describe("shard2: StargateNFT Pausability", () => {
       tx = await stargateNFTContractV1.connect(pauser).pause();
       await tx.wait();
       // Tx should revert because user1 is not the pauser
-      await expect(stargateNFTContractV1.connect(user1).unpause()).to.be.reverted;
+      await expect(stargateNFTContractV1.connect(user1).unpause()).to.be.revertedWithCustomError(
+        stargateNFTContractV1,
+        "AccessControlUnauthorizedAccount"
+      ).withArgs(await user1.getAddress(), await stargateNFTContractV1.PAUSER_ROLE());
     });
 
     it("users should not be able to stake while the contract is paused", async () => {
@@ -48,8 +51,9 @@ describe("shard2: StargateNFT Pausability", () => {
       tx = await stargateNFTContractV1.connect(pauser).pause();
       await tx.wait();
       // Tx should revert because the contract is paused
-      await expect(stargateNFTContractV1.connect(user1).stake(1, { value: ethers.parseEther("1") }))
-        .to.be.reverted;
+      await expect(
+        stargateNFTContractV1.connect(user1).stake(1, { value: ethers.parseEther("1") })
+      ).to.be.revertedWithCustomError(stargateNFTContractV1, "EnforcedPause");
     });
 
     it("users should not be able to stakeAndDelegate while the contract is paused", async () => {
@@ -61,7 +65,7 @@ describe("shard2: StargateNFT Pausability", () => {
         stargateNFTContractV1.connect(user1).stakeAndDelegate(1, true, {
           value: ethers.parseEther("1"),
         })
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(stargateNFTContractV1, "EnforcedPause");
     });
 
     it("Users should not be able to migrate while the contract is paused", async () => {
@@ -73,7 +77,7 @@ describe("shard2: StargateNFT Pausability", () => {
         stargateNFTContractV1.connect(user1).migrate(1, {
           value: ethers.parseEther("1"),
         })
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(stargateNFTContractV1, "EnforcedPause");
     });
 
     it("Users should not be able to migrateAndDelegate while the contract is paused", async () => {
@@ -85,7 +89,7 @@ describe("shard2: StargateNFT Pausability", () => {
         stargateNFTContractV1.connect(user1).migrateAndDelegate(1, true, {
           value: ethers.parseEther("1"),
         })
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(stargateNFTContractV1, "EnforcedPause");
     });
 
     it("Users should not be able to unstake while the contract is paused", async () => {
@@ -93,7 +97,10 @@ describe("shard2: StargateNFT Pausability", () => {
       tx = await stargateNFTContractV1.connect(pauser).pause();
       await tx.wait();
       // Tx should revert because the contract is paused
-      await expect(stargateNFTContractV1.connect(user1).unstake(1)).to.be.reverted;
+      await expect(stargateNFTContractV1.connect(user1).unstake(1)).to.be.revertedWithCustomError(
+        stargateNFTContractV1,
+        "EnforcedPause"
+      );
     });
 
     it("Users should not be able to claim vet generated vtho while the contract is paused", async () => {
@@ -101,7 +108,9 @@ describe("shard2: StargateNFT Pausability", () => {
       tx = await stargateNFTContractV1.connect(pauser).pause();
       await tx.wait();
       // Tx should revert because the contract is paused
-      await expect(stargateNFTContractV1.connect(user1).claimVetGeneratedVtho(1)).to.be.reverted;
+      await expect(
+        stargateNFTContractV1.connect(user1).claimVetGeneratedVtho(1)
+      ).to.be.revertedWithCustomError(stargateNFTContractV1, "EnforcedPause");
     });
 
     it("should be able to unpause the contract", async () => {

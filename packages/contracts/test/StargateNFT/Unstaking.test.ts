@@ -91,9 +91,13 @@ describe("shard11: StargateNFT Unstaking", () => {
     it("burn callback is not callable externally", async () => {
       const deployer = (await ethers.getSigners())[0];
 
-      await expect(stargateNFT.connect(deployer)._burnCallback(100000)).to.be.reverted;
+      await expect(stargateNFT.connect(deployer)._burnCallback(100000))
+        .to.be.revertedWithCustomError(errorsInterface, "UnauthorizedCaller")
+        .withArgs(deployer.address);
 
-      await expect(stargateNFT.connect(user1)._burnCallback(100000)).to.be.reverted;
+      await expect(stargateNFT.connect(user1)._burnCallback(100000))
+        .to.be.revertedWithCustomError(errorsInterface, "UnauthorizedCaller")
+        .withArgs(user1.address);
     });
 
     it("should not be able to unstake when delegating", async () => {
@@ -107,7 +111,9 @@ describe("shard11: StargateNFT Unstaking", () => {
         .stakeAndDelegate(level.id, false, { value: level.vetAmountRequiredToStake });
       await tx.wait();
 
-      await expect(stargateNFT.connect(user1).unstake(latestTokenId + 1n)).to.be.reverted;
+      await expect(
+        stargateNFT.connect(user1).unstake(latestTokenId + 1n)
+      ).to.be.revertedWithCustomError(errorsInterface, "TokenNotEligible");
     });
 
     it("Cannot unstake on behalf of another user", async () => {
@@ -130,7 +136,9 @@ describe("shard11: StargateNFT Unstaking", () => {
 
       const otherUser = (await ethers.getSigners())[8];
 
-      await expect(stargateNFT.connect(otherUser).unstake(latestTokenId)).to.be.reverted;
+      await expect(
+        stargateNFT.connect(otherUser).unstake(latestTokenId)
+      ).to.be.revertedWithCustomError(errorsInterface, "NotOwner");
     });
   });
 
@@ -209,8 +217,14 @@ describe("shard11: StargateNFT Unstaking", () => {
       expect(await stargateNFT.balanceOf(user1)).to.equal(0);
       expect(await stargateNFT.idsOwnedBy(user1.address)).to.deep.equal([]);
 
-      await expect(stargateNFT.isXToken(expectedTokenId)).to.be.reverted;
-      await expect(stargateNFT.isNormalToken(expectedTokenId)).to.be.reverted;
+      await expect(stargateNFT.isXToken(expectedTokenId)).to.be.revertedWithCustomError(
+        stargateNFT,
+        "ERC721NonexistentToken"
+      );
+      await expect(stargateNFT.isNormalToken(expectedTokenId)).to.be.revertedWithCustomError(
+        stargateNFT,
+        "ERC721NonexistentToken"
+      );
       expect(await stargateNFT.tokenExists(expectedTokenId)).to.be.false;
     });
   });

@@ -5,6 +5,7 @@ import { deployUpgradeableWithoutInitialization, initializeProxy } from "../../s
 import { createLocalConfig } from "@repo/config/contracts/envs/local";
 import { StargateNFTV1 } from "../../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { getStargateNFTErrorsInterface } from "../helpers";
 
 describe("shard1: StargateNFT Deployment", () => {
   const config = createLocalConfig();
@@ -134,7 +135,7 @@ describe("shard1: StargateNFT Deployment", () => {
           VetGeneratedVthoV1: await libraries.StargateNFTVetGeneratedVthoLibV1.getAddress(),
           LevelsV1: await libraries.StargateNFTLevelsLibV1.getAddress(),
         })
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(await getStargateNFTErrorsInterface(), error);;
     }
   });
 
@@ -268,7 +269,7 @@ describe("shard1: StargateNFT Deployment", () => {
           LevelsV1: await libraries.StargateNFTLevelsLibV1.getAddress(),
         }
       )
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(await getStargateNFTErrorsInterface(), "InvalidInitialization");
   });
 
   it("Should correctly support the ERC165 interface", async () => {

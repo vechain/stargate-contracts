@@ -67,12 +67,19 @@ describe("shard1001: NodeManagementV3", function () {
         .withArgs(3);
 
       // cannot initilize twice
-      await expect(nodeManagement.initialize(deployer.address, deployer.address, deployer.address))
-        .to.be.reverted;
+      await expect(
+        nodeManagement.initialize(deployer.address, deployer.address, deployer.address)
+      ).to.be.revertedWithCustomError(nodeManagement, "InvalidInitialization");
 
-      await expect(nodeManagement.initializeV2()).to.be.reverted;
+      await expect(nodeManagement.initializeV2()).to.be.revertedWithCustomError(
+        nodeManagement,
+        "InvalidInitialization"
+      );
 
-      await expect(nodeManagement.initializeV3(deployer.address)).to.be.reverted;
+      await expect(nodeManagement.initializeV3(deployer.address)).to.be.revertedWithCustomError(
+        nodeManagement,
+        "InvalidInitialization"
+      );
     });
 
     // TODO: this test is skipped because the sdk does not propoerly
@@ -94,7 +101,7 @@ describe("shard1001: NodeManagementV3", function () {
           [deployer.address, ZeroAddress, deployer.address],
           {},
         ),
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(nodeManagementContract, "InvalidInitialization");
     });
 
     it("Cannot initialize V3 with a zero address for stargateNft", async function () {
@@ -117,7 +124,10 @@ describe("shard1001: NodeManagementV3", function () {
         .to.emit(nodeManagement, "Initialized")
         .withArgs(2);
 
-      await expect(nodeManagement.initializeV3(ethers.ZeroAddress)).to.be.reverted;
+        await expect(nodeManagement.initializeV3(ethers.ZeroAddress)).to.be.revertedWithCustomError(
+          nodeManagement,
+          "AddressCannotBeZero"
+        );
     });
 
     it("Only upgrader can initialize V2 and V3", async function () {
@@ -139,10 +149,13 @@ describe("shard1001: NodeManagementV3", function () {
 
       expect(await nodeManagement.version()).to.equal("3");
 
-      await expect(nodeManagement.connect(maliciousUser).initializeV2()).to.be.reverted;
+      await expect(
+        nodeManagement.connect(maliciousUser).initializeV2()
+      ).to.be.revertedWithCustomError(nodeManagement, "AccessControlUnauthorizedAccount");
 
-      await expect(nodeManagement.connect(maliciousUser).initializeV3(ethers.ZeroAddress)).to.be
-        .reverted;
+      await expect(
+        nodeManagement.connect(maliciousUser).initializeV3(ethers.ZeroAddress)
+      ).to.be.revertedWithCustomError(nodeManagement, "AccessControlUnauthorizedAccount");
     });
   });
 
@@ -170,13 +183,13 @@ describe("shard1001: NodeManagementV3", function () {
 
       await expect(
         nodeManagementContract.connect(otherAccount).setVechainNodesContract(ethers.ZeroAddress)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(nodeManagementContract, "AccessControlUnauthorizedAccount");
     });
 
     it("VechainNodes contract address cannot be set to zero address", async function () {
       await expect(
         nodeManagementContract.connect(deployer).setVechainNodesContract(ethers.ZeroAddress)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(nodeManagementContract, "AddressCannotBeZero");
     });
   });
 
@@ -207,13 +220,15 @@ describe("shard1001: NodeManagementV3", function () {
       const mockAddress = await mockedErc721Contract.getAddress();
 
       // Non-admin shouldn't be able to set the address
-      await expect(nodeManagementContract.connect(otherAccount).setStargateNft(mockAddress)).to.be
-        .reverted;
+      await expect(nodeManagementContract.connect(otherAccount).setStargateNft(mockAddress))
+        .to.be.revertedWithCustomError(nodeManagementContract, "AccessControlUnauthorizedAccount")
+        .withArgs(otherAccount.address, await nodeManagementContract.DEFAULT_ADMIN_ROLE());
     });
 
     it("Should revert when setting StargateNFT to zero address", async function () {
-      await expect(nodeManagementContract.connect(deployer).setStargateNft(ethers.ZeroAddress)).to
-        .be.reverted;
+      await expect(
+        nodeManagementContract.connect(deployer).setStargateNft(ethers.ZeroAddress)
+      ).to.be.revertedWithCustomError(nodeManagementContract, "AddressCannotBeZero");
     });
   });
 
@@ -439,8 +454,9 @@ describe("shard1001: NodeManagementV3", function () {
       const nodeId = ownedIds[0];
 
       // Try to delegate as non-owner
-      await expect(nodeManagementContract.connect(nonOwner).delegateNode(delegatee.address, nodeId))
-        .to.be.reverted;
+      await expect(
+        nodeManagementContract.connect(nonOwner).delegateNode(delegatee.address, nodeId)
+      ).to.be.revertedWithCustomError(nodeManagementContract, "NodeManagementNotNodeOwner");
     });
   });
 
@@ -597,7 +613,9 @@ describe("shard1001: NodeManagementV3", function () {
     });
 
     it("Should not be possible to see if address zero is a node manager", async function () {
-      await expect(nodeManagementContract.isNodeManager(ethers.ZeroAddress, 1)).to.be.reverted;
+      await expect(
+        nodeManagementContract.isNodeManager(ethers.ZeroAddress, 1)
+      ).to.be.revertedWithCustomError(nodeManagementContract, "NodeManagementZeroAddress");
     });
 
     it("Should return false if a non existing node is checked if it is a delegate", async function () {

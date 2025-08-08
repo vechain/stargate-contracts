@@ -78,27 +78,33 @@ describe("shard4: StargateNFT Settings", () => {
   it("Users without DEFAULT_ADMIN_ROLE cannot update contract addresses", async () => {
     expect(await stargateNFTContract.hasRole(roleDefaultAdmin, maliciousUser.address)).to.be.false;
 
-    await expect(stargateNFTContract.connect(maliciousUser).setStargateDelegation(deployer.address))
-      .to.be.reverted;
+    await expect(
+      stargateNFTContract.connect(maliciousUser).setStargateDelegation(deployer.address)
+    ).to.be.revertedWithCustomError(stargateNFTContract, "AccessControlUnauthorizedAccount");
 
-    await expect(stargateNFTContract.connect(maliciousUser).setVthoToken(deployer.address)).to.be
-      .reverted;
+    await expect(
+      stargateNFTContract.connect(maliciousUser).setVthoToken(deployer.address)
+    ).to.be.revertedWithCustomError(stargateNFTContract, "AccessControlUnauthorizedAccount");
 
-    await expect(stargateNFTContract.connect(maliciousUser).setLegacyNodes(deployer.address)).to.be
-      .reverted;
+    await expect(
+      stargateNFTContract.connect(maliciousUser).setLegacyNodes(deployer.address)
+    ).to.be.revertedWithCustomError(stargateNFTContract, "AccessControlUnauthorizedAccount");
   });
 
   it("Admins cannot set contract addresses to the zero address", async () => {
     expect(await stargateNFTContract.hasRole(roleDefaultAdmin, deployer.address)).to.be.true;
 
-    await expect(stargateNFTContract.connect(deployer).setStargateDelegation(ethers.ZeroAddress)).to
-      .be.reverted;
+    await expect(
+      stargateNFTContract.connect(deployer).setStargateDelegation(ethers.ZeroAddress)
+    ).to.be.revertedWithCustomError(errorsInterface, "AddressCannotBeZero");
 
-    await expect(stargateNFTContract.connect(deployer).setVthoToken(ethers.ZeroAddress)).to.be
-      .reverted;
+    await expect(
+      stargateNFTContract.connect(deployer).setVthoToken(ethers.ZeroAddress)
+    ).to.be.revertedWithCustomError(errorsInterface, "AddressCannotBeZero");
 
-    await expect(stargateNFTContract.connect(deployer).setLegacyNodes(ethers.ZeroAddress)).to.be
-      .reverted;
+    await expect(
+      stargateNFTContract.connect(deployer).setLegacyNodes(ethers.ZeroAddress)
+    ).to.be.revertedWithCustomError(errorsInterface, "AddressCannotBeZero");
   });
 
   it("Admins with MANAGER_ROLE can update the base token URI", async () => {
@@ -120,15 +126,20 @@ describe("shard4: StargateNFT Settings", () => {
   it("Users without MANAGER_ROLE cannot update the base token URI", async () => {
     expect(await stargateNFTContract.hasRole(roleManager, maliciousUser.address)).to.be.false;
 
-    await expect(stargateNFTContract.connect(maliciousUser).setBaseURI("new-base-uri")).to.be
-      .reverted;
+    await expect(
+      stargateNFTContract.connect(maliciousUser).setBaseURI("new-base-uri")
+    ).to.be.revertedWithCustomError(stargateNFTContract, "AccessControlUnauthorizedAccount").withArgs(
+      maliciousUser.getAddress(),
+      stargateNFTContract.MANAGER_ROLE()
+    );
   });
 
   it("Admins cannot update the VTHO generation end timestamp if the contract is not paused", async () => {
     expect(await stargateNFTContract.hasRole(roleDefaultAdmin, deployer.address)).to.be.true;
 
-    await expect(stargateNFTContract.connect(deployer).setVthoGenerationEndTimestamp(1718000000)).to
-      .be.reverted;
+    await expect(
+      stargateNFTContract.connect(deployer).setVthoGenerationEndTimestamp(1718000000)
+    ).to.be.revertedWithCustomError(stargateNFTContract, "ExpectedPause");
   });
 
   it("Admins with DEFAULT_ADMIN_ROLE can update the VTHO generation end timestamp", async () => {
@@ -158,7 +169,10 @@ describe("shard4: StargateNFT Settings", () => {
 
     await expect(
       stargateNFTContract.connect(maliciousUser).setVthoGenerationEndTimestamp(1718000000)
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(stargateNFTContract, "AccessControlUnauthorizedAccount").withArgs(
+      maliciousUser.getAddress(),
+      stargateNFTContract.DEFAULT_ADMIN_ROLE()
+    );
 
     tx = await stargateNFTContract.connect(deployer).unpause();
     await tx.wait();
@@ -229,7 +243,10 @@ describe("shard4: StargateNFT Settings", () => {
       stargateNFTContract
         .connect(randomUser)
         .addWhitelistEntry(randomUserAddress, whitelistedTokenId, whitelistedLevelId)
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(stargateNFTContract, "AccessControlUnauthorizedAccount").withArgs(
+      randomUser.getAddress(),
+      stargateNFTContract.WHITELISTER_ROLE()
+    );
 
     // Assert that user is still not whitelisted
     const whitelistEntryAfter = await stargateNFTContract.getWhitelistEntry(randomUserAddress);
@@ -246,19 +263,19 @@ describe("shard4: StargateNFT Settings", () => {
       stargateNFTContract
         .connect(whitelisterUser)
         .addWhitelistEntry(ethers.ZeroAddress, 1, TokenLevelId.VeThorX)
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(errorsInterface, "AddressCannotBeZero");
 
     // Tx reverts when providing tokenId zero
     await expect(
       stargateNFTContract
         .connect(whitelisterUser)
         .addWhitelistEntry(deployer.address, 0, TokenLevelId.VeThorX)
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(errorsInterface, "ValueCannotBeZero");
 
     // Tx reverts when providing levelId zero
     await expect(
       stargateNFTContract.connect(whitelisterUser).addWhitelistEntry(deployer.address, 1, 0)
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(errorsInterface, "ValueCannotBeZero");
 
     // Tx reverts when providing tokenId equal to (or greater than) currentTokenId
     const currentTokenId = await stargateNFTContract.getCurrentTokenId();
@@ -266,7 +283,7 @@ describe("shard4: StargateNFT Settings", () => {
       stargateNFTContract
         .connect(whitelisterUser)
         .addWhitelistEntry(deployer.address, currentTokenId, TokenLevelId.VeThorX)
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(errorsInterface, "InvalidValue");
 
     // Tx reverts when providing levelId greater than MAX_LEVEL_ID
     const levelIds = await stargateNFTContract.getLevelIds();
@@ -275,7 +292,7 @@ describe("shard4: StargateNFT Settings", () => {
       stargateNFTContract
         .connect(whitelisterUser)
         .addWhitelistEntry(deployer.address, 1, maxLevelId + 1n)
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(errorsInterface, "LevelNotFound");
   });
 
   it("should be able to overwrite already whitelisted addresses and related data", async () => {
@@ -329,7 +346,10 @@ describe("shard4: StargateNFT Settings", () => {
 
     // Try to remove themselves
     await expect(stargateNFTContract.connect(randomUser).removeWhitelistEntry(randomUserAddress)).to
-      .be.reverted;
+      .be.revertedWithCustomError(stargateNFTContract, "AccessControlUnauthorizedAccount").withArgs(
+        randomUser.getAddress(),
+        stargateNFTContract.WHITELISTER_ROLE()
+      );
   });
 
   it("should revert when providing invalid parameters to removeWhitelistEntry", async () => {
@@ -339,7 +359,7 @@ describe("shard4: StargateNFT Settings", () => {
     // Assert that tx reverts when address is the zero address
     await expect(
       stargateNFTContract.connect(whitelisterUser).removeWhitelistEntry(ethers.ZeroAddress)
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(errorsInterface, "AddressCannotBeZero");
   });
 
   it("should revert when removing a whitelist entry that does not exist", async () => {
@@ -349,6 +369,6 @@ describe("shard4: StargateNFT Settings", () => {
     // Assert that tx reverts when removing a whitelist entry that does not exist
     await expect(
       stargateNFTContract.connect(whitelisterUser).removeWhitelistEntry(deployer.address)
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(errorsInterface, "WhitelistEntryNotFound");
   });
 });

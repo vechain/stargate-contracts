@@ -236,7 +236,7 @@ describe("shard3: StargateNFT Upgradeability", () => {
       stargateNFTContract
         .connect(deployer)
         .upgradeToAndCall(await newImplementation.getAddress(), "0x")
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(stargateNFTContract, "AccessControlUnauthorizedAccount");
 
     // Assert that implementation address did not change
     const currentImplementationAddressAfter = await getImplementationAddress(

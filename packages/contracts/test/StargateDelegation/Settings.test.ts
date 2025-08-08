@@ -89,8 +89,9 @@ describe("shard102: StargateDelegation Settings", () => {
 
   it("Should revert when trying to set vtho rewards with invalid parameters", async () => {
     // Test with empty array - should revert with ArrayCannotBeEmpty
-    await expect(stargateDelegationContract.connect(deployer).setVthoRewardPerBlockForAllLevels([]))
-      .to.be.reverted;
+    await expect(
+      stargateDelegationContract.connect(deployer).setVthoRewardPerBlockForAllLevels([])
+    ).to.be.revertedWithCustomError(stargateDelegationContract, "ArrayCannotBeEmpty");
 
     // Test with zero reward per block - should revert with InvalidVthoRewardPerBlock
     const invalidRewards = [
@@ -102,7 +103,7 @@ describe("shard102: StargateDelegation Settings", () => {
 
     await expect(
       stargateDelegationContract.connect(deployer).setVthoRewardPerBlockForAllLevels(invalidRewards)
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(stargateDelegationContract, "InvalidVthoRewardPerBlock");
   });
 
   it("Should revert when non admin tries to set vtho rewards", async () => {
@@ -117,13 +118,13 @@ describe("shard102: StargateDelegation Settings", () => {
       stargateDelegationContract
         .connect(otherAccounts[0])
         .setVthoRewardPerBlockForAllLevels(newVthoRewardsPerBlock)
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(stargateDelegationContract, "UnauthorizedUser");
 
     await expect(
       stargateDelegationContract
         .connect(otherAccounts[0])
         .setVthoRewardPerBlockForLevel(1, 500000000000000000n)
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(stargateDelegationContract, "UnauthorizedUser");
   });
 
   it("Admin can set rewards accumulation end block", async () => {
@@ -146,7 +147,7 @@ describe("shard102: StargateDelegation Settings", () => {
       stargateDelegationContract
         .connect(otherAccounts[0])
         .setRewardsAccumulationEndBlock(newEndBlock)
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(stargateDelegationContract, "UnauthorizedUser");
 
     expect(await stargateDelegationContract.getRewardsAccumulationEndBlock()).to.equal(
       currentEndBlock

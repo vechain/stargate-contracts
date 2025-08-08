@@ -18,8 +18,8 @@
       "multiple_claims_in_delegation": 1,
       "transferred": 1
     },
-    "generatedAt": "2025-08-06T11:16:40.561Z",
-    "blockRange": "0-4511",
+    "generatedAt": "2025-08-05T15:21:13.415Z",
+    "blockRange": "0-4509",
     "network": "hardhat",
     "environment": "local"
   },
@@ -36,7 +36,7 @@
       "bugInstances": [
         {
           "tokenId": "100001",
-          "claimBlock": 4293,
+          "claimBlock": 4291,
           "rewards": "367199391000000000"
         }
       ]
@@ -53,12 +53,12 @@
       "bugInstances": [
         {
           "tokenId": "100002",
-          "claimBlock": 4307,
+          "claimBlock": 4305,
           "rewards": "367199391000000000"
         },
         {
           "tokenId": "100002",
-          "claimBlock": 4320,
+          "claimBlock": 4318,
           "rewards": "367199391000000000"
         }
       ]
@@ -76,12 +76,12 @@
       "bugInstances": [
         {
           "tokenId": "100003",
-          "claimBlock": 4336,
+          "claimBlock": 4334,
           "rewards": "611998985000000000"
         },
         {
           "tokenId": "100004",
-          "claimBlock": 4337,
+          "claimBlock": 4335,
           "rewards": "611998985000000000"
         }
       ]
@@ -98,7 +98,7 @@
       "bugInstances": [
         {
           "tokenId": "100005",
-          "claimBlock": 4351,
+          "claimBlock": 4349,
           "rewards": "367199391000000000"
         }
       ]
@@ -115,7 +115,7 @@
       "bugInstances": [
         {
           "tokenId": "100007",
-          "claimBlock": 4365,
+          "claimBlock": 4363,
           "rewards": "367199391000000000"
         }
       ]
@@ -132,7 +132,7 @@
       "bugInstances": [
         {
           "tokenId": "100008",
-          "claimBlock": 4393,
+          "claimBlock": 4391,
           "rewards": "367199391000000000"
         }
       ]
@@ -149,7 +149,7 @@
       "bugInstances": [
         {
           "tokenId": "100008",
-          "claimBlock": 4421,
+          "claimBlock": 4419,
           "rewards": "367199391000000000"
         }
       ]
@@ -166,12 +166,12 @@
       "bugInstances": [
         {
           "tokenId": "100009",
-          "claimBlock": 4449,
+          "claimBlock": 4447,
           "rewards": "367199391000000000"
         },
         {
           "tokenId": "100009",
-          "claimBlock": 4477,
+          "claimBlock": 4475,
           "rewards": "367199391000000000"
         }
       ]
@@ -188,7 +188,7 @@
       "bugInstances": [
         {
           "tokenId": "100010",
-          "claimBlock": 4494,
+          "claimBlock": 4492,
           "rewards": "734398782000000000"
         }
       ]
@@ -201,10 +201,10 @@
       "lostRewards": "734398782000000000",
       "lostRewardsEther": "0.734398782",
       "lostBlocks": 6,
-      "claimBlock": 4494,
-      "delegationStartBlock": 4478,
-      "rewardsAccumulationStartBlock": 4478,
-      "expectedAccumulationStartBlock": 4488,
+      "claimBlock": 4492,
+      "delegationStartBlock": 4476,
+      "rewardsAccumulationStartBlock": 4476,
+      "expectedAccumulationStartBlock": 4486,
       "delegationStartTx": "0x6284fd5bdf7e8794d3c3369fa67aed30ae07761399c5c249b97b9d87aded57d4",
       "claimTx": "0x12496f9d0762fce79b6710503b58822f9989da004899ad1c846f602302bcbcf5",
       "tags": [
@@ -217,10 +217,10 @@
       "lostRewards": "611998985000000000",
       "lostRewardsEther": "0.611998985",
       "lostBlocks": 5,
-      "claimBlock": 4336,
-      "delegationStartBlock": 4321,
-      "rewardsAccumulationStartBlock": 4321,
-      "expectedAccumulationStartBlock": 4331,
+      "claimBlock": 4334,
+      "delegationStartBlock": 4319,
+      "rewardsAccumulationStartBlock": 4319,
+      "expectedAccumulationStartBlock": 4329,
       "delegationStartTx": "0x0da5e001f3a4d07e07bfb493531f334b6a6b541cf4f443921e49adda86316bde",
       "claimTx": "0x94f4a826f3edce9bdf2ec88876c14d6897a8c797e3cc31001001eb1c67cc5427",
       "tags": [
@@ -233,10 +233,10 @@
       "lostRewards": "611998985000000000",
       "lostRewardsEther": "0.611998985",
       "lostBlocks": 5,
-      "claimBlock": 4337,
-      "delegationStartBlock": 4322,
-      "rewardsAccumulationStartBlock": 4322,
-      "expectedAccumulationStartBlock": 4332,
+      "claimBlock": 4335,
+      "delegationStartBlock": 4320,
+      "rewardsAccumulationStartBlock": 4320,
+      "expectedAccumulationStartBlock": 4330,
       "delegationStartTx": "0xed8ad4daadc9f34e6df93bb2f1c7990c5089edf954df88cb6bd03f53ab3b26e2",
       "claimTx": "0x3ea4e11034f08663b974860dd11ecd202ab71e2664ff17806f28a072fe11d9c2",
       "tags": [
@@ -249,10 +249,10 @@
       "lostRewards": "367199391000000000",
       "lostRewardsEther": "0.367199391",
       "lostBlocks": 3,
-      "claimBlock": 4293,
-      "delegationStartBlock": 4280,
-      "rewardsAccumulationStartBlock": 4280,
-      "expectedAccumulationStartBlock": 4290,
+      "claimBlock": 4291,
+      "delegationStartBlock": 4278,
+      "rewardsAccumulationStartBlock": 4278,
+      "expectedAccumulationStartBlock": 4288,
       "delegationStartTx": "0x598977f67ccb1b38b132c26797aac700bdf068f71d83b92d52c5ce8efe4fadf7",
       "claimTx": "0xd8cf6bf8ffe2775cad5d66b478a1b8d45250361cca1302ca4d3e37a43e7037a0",
       "tags": [
@@ -265,10 +265,10 @@
       "lostRewards": "367199391000000000",
       "lostRewardsEther": "0.367199391",
       "lostBlocks": 3,
-      "claimBlock": 4307,
-      "delegationStartBlock": 4294,
-      "rewardsAccumulationStartBlock": 4294,
-      "expectedAccumulationStartBlock": 4304,
+      "claimBlock": 4305,
+      "delegationStartBlock": 4292,
+      "rewardsAccumulationStartBlock": 4292,
+      "expectedAccumulationStartBlock": 4302,
       "delegationStartTx": "0xb98058a9a8a29de2985c0a2e70a1606cd337a9210c32b2f3feaaf1bacaa42935",
       "claimTx": "0x1467b3225b1f04a363a1e9b6d95769d53286ceb77fe4916753e1ddf258b7de43",
       "tags": [
@@ -282,10 +282,10 @@
       "lostRewards": "367199391000000000",
       "lostRewardsEther": "0.367199391",
       "lostBlocks": 3,
-      "claimBlock": 4320,
-      "delegationStartBlock": 4294,
-      "rewardsAccumulationStartBlock": 4307,
-      "expectedAccumulationStartBlock": 4317,
+      "claimBlock": 4318,
+      "delegationStartBlock": 4292,
+      "rewardsAccumulationStartBlock": 4305,
+      "expectedAccumulationStartBlock": 4315,
       "delegationStartTx": "0xb98058a9a8a29de2985c0a2e70a1606cd337a9210c32b2f3feaaf1bacaa42935",
       "claimTx": "0x1d3e8f2d48882a84d59928008dd7a06ed957c3464b0090da031a7f7f77a4ba5d",
       "tags": [
@@ -300,10 +300,10 @@
       "lostRewards": "367199391000000000",
       "lostRewardsEther": "0.367199391",
       "lostBlocks": 3,
-      "claimBlock": 4351,
-      "delegationStartBlock": 4338,
-      "rewardsAccumulationStartBlock": 4338,
-      "expectedAccumulationStartBlock": 4348,
+      "claimBlock": 4349,
+      "delegationStartBlock": 4336,
+      "rewardsAccumulationStartBlock": 4336,
+      "expectedAccumulationStartBlock": 4346,
       "delegationStartTx": "0xfe8d2b912e7416360b3f5c948c2833f7d2f0387856e0b04e79bc18369a4f03aa",
       "claimTx": "0x26d1259b3314067cb9c68e4c41f9fd3ce61e5def1ff02bd415bb25ba42a3e4c8",
       "tags": [
@@ -316,10 +316,10 @@
       "lostRewards": "367199391000000000",
       "lostRewardsEther": "0.367199391",
       "lostBlocks": 3,
-      "claimBlock": 4365,
-      "delegationStartBlock": 4352,
-      "rewardsAccumulationStartBlock": 4352,
-      "expectedAccumulationStartBlock": 4362,
+      "claimBlock": 4363,
+      "delegationStartBlock": 4350,
+      "rewardsAccumulationStartBlock": 4350,
+      "expectedAccumulationStartBlock": 4360,
       "delegationStartTx": "0xca85f477b037f4310dfb5087391a8d433aa77cec4e8350add98676752c7ff050",
       "claimTx": "0x5f57f616bca37cae0e332c086525f46c99e618326f8b6237ce22401276088a81",
       "tags": [
@@ -333,10 +333,10 @@
       "lostRewards": "367199391000000000",
       "lostRewardsEther": "0.367199391",
       "lostBlocks": 3,
-      "claimBlock": 4393,
-      "delegationStartBlock": 4380,
-      "rewardsAccumulationStartBlock": 4380,
-      "expectedAccumulationStartBlock": 4390,
+      "claimBlock": 4391,
+      "delegationStartBlock": 4378,
+      "rewardsAccumulationStartBlock": 4378,
+      "expectedAccumulationStartBlock": 4388,
       "delegationStartTx": "0x9bcdf2f2506965343de8a51e0ad23d5509a84e13d67cdbceb61bf4febb49cfb2",
       "claimTx": "0x59e3128c7099758e7308b73a291a90551d91bd13d60b9b0455785c172faf18d3",
       "tags": [
@@ -352,10 +352,10 @@
       "lostRewards": "367199391000000000",
       "lostRewardsEther": "0.367199391",
       "lostBlocks": 3,
-      "claimBlock": 4421,
-      "delegationStartBlock": 4408,
-      "rewardsAccumulationStartBlock": 4408,
-      "expectedAccumulationStartBlock": 4418,
+      "claimBlock": 4419,
+      "delegationStartBlock": 4406,
+      "rewardsAccumulationStartBlock": 4406,
+      "expectedAccumulationStartBlock": 4416,
       "delegationStartTx": "0xa22896ea2fbeeac5e6d5bf2624ddbb9f3a0a6138b0a11538f3df962509e857c6",
       "claimTx": "0x1cf0e42b88231eceade280c08633c0046ab64fe827ae32173f06ae751f8d66b5",
       "tags": [
@@ -370,10 +370,10 @@
       "lostRewards": "367199391000000000",
       "lostRewardsEther": "0.367199391",
       "lostBlocks": 3,
-      "claimBlock": 4449,
-      "delegationStartBlock": 4436,
-      "rewardsAccumulationStartBlock": 4436,
-      "expectedAccumulationStartBlock": 4446,
+      "claimBlock": 4447,
+      "delegationStartBlock": 4434,
+      "rewardsAccumulationStartBlock": 4434,
+      "expectedAccumulationStartBlock": 4444,
       "delegationStartTx": "0x6413610cfae1606a6e6fd9529aee4b876ff0e77fb883c1ec9beabbb8245d7bee",
       "claimTx": "0x0af70ea8e07bb39f3fff1ed636553156b2a62881f0f28807b1625868e5b5c899",
       "tags": [
@@ -387,10 +387,10 @@
       "lostRewards": "367199391000000000",
       "lostRewardsEther": "0.367199391",
       "lostBlocks": 3,
-      "claimBlock": 4477,
-      "delegationStartBlock": 4464,
-      "rewardsAccumulationStartBlock": 4464,
-      "expectedAccumulationStartBlock": 4474,
+      "claimBlock": 4475,
+      "delegationStartBlock": 4462,
+      "rewardsAccumulationStartBlock": 4462,
+      "expectedAccumulationStartBlock": 4472,
       "delegationStartTx": "0xda69101fb9f9289e973b24d85e46b3e9e3f44e24a51498d6140ec51ed7fe43f7",
       "claimTx": "0xfd7e17569428e8a36deef4e32a6630a8af30d763ea673e55370e5d5d84b6ac26",
       "tags": [

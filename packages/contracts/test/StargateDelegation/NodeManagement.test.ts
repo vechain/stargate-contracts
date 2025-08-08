@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { getOrDeployContracts } from "../helpers/deploy";
 import { createLocalConfig } from "@repo/config/contracts/envs/local";
-import { mineBlocks } from "../helpers/common";
+import { getStargateNFTErrorsInterface, mineBlocks } from "../helpers/common";
 import { ethers } from "hardhat";
 import { StargateDelegation, StargateNFT, NodeManagementV3 } from "../../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
@@ -88,7 +88,13 @@ describe("shard105: StargateDelegation NodeManagement", () => {
     });
 
     it("should prevent node manager to start delegation", async () => {
-      await expect(stargateDelegation.connect(nodeManager).delegate(tokenId, true)).to.reverted;
+      // Stake an NFT
+      tx = await stargateNFT.stake(levelId, { value: stakeAmount });
+      await tx.wait();
+
+      await expect(
+        stargateDelegation.connect(nodeManager).delegate(tokenId, true)
+      ).to.be.revertedWithCustomError(stargateDelegation, "UnauthorizedUser");
 
       // Verify delegation is not active
       expect(await stargateDelegation.isDelegationActive(tokenId)).to.be.false;
@@ -108,7 +114,7 @@ describe("shard105: StargateDelegation NodeManagement", () => {
         stargateNFT
           .connect(nodeManager)
           .transferFrom(deployer.address, otherAccounts[1].address, tokenId)
-      ).to.be.reverted;
+      ).to.be.revertedWithCustomError(stargateNFT, "ERC721InsufficientApproval");
     });
 
     it("should allow owner should be able to delegate", async () => {
@@ -129,9 +135,9 @@ describe("shard105: StargateDelegation NodeManagement", () => {
       // Delegate the NFT
       tx = await nodeManagement.connect(deployer).delegateNode(nodeManager.address, tokenId);
       await tx.wait();
-      // 
-      await expect(stargateDelegation.connect(nodeManager).requestDelegationExit(tokenId)).to.be
-        .reverted;
+      await expect(
+        stargateDelegation.connect(nodeManager).requestDelegationExit(tokenId)
+      ).to.be.revertedWithCustomError(stargateDelegation, "UnauthorizedUser");
     });
 
     it("should allow node manager to claim rewards", async () => {
@@ -193,8 +199,10 @@ describe("shard105: StargateDelegation NodeManagement", () => {
       // Delegate the NFT
       tx = await nodeManagement.connect(deployer).delegateNode(nodeManager.address, tokenId);
       await tx.wait();
-      // Prevent node manager from unstaking
-      await expect(stargateNFT.connect(nodeManager).unstake(tokenId)).to.reverted;
+      await expect(stargateNFT.connect(nodeManager).unstake(tokenId)).to.revertedWithCustomError(
+        await getStargateNFTErrorsInterface(),
+        "NotOwner"
+      );
     });
 
     it("should allow owner to unstake", async () => {

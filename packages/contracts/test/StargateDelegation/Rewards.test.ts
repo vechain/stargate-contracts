@@ -588,7 +588,12 @@ describe("shard104: StargateDelegation Rewards", () => {
     const claimableRewardsBefore = await stargateDelegationContract.claimableRewards(tokenId);
     expect(claimableRewardsBefore).to.be.gt(0);
 
-    await expect(stargateDelegationContract.connect(deployer).claimRewards(tokenId)).to.be.reverted;
+    await expect(
+      stargateDelegationContract.connect(deployer).claimRewards(tokenId)
+    ).to.be.revertedWithCustomError(
+      stargateDelegationContract,
+      "InsufficientVthoBalanceForRewardsClaim"
+    );
   });
 
   it("cannot claim additional rewards if rewards accumulation end block is reached", async () => {

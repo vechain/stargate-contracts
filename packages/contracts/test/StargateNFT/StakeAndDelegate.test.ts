@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { getOrDeployContracts } from "../helpers/deploy";
 import { createLocalConfig } from "@repo/config/contracts/envs/local";
-import { mineBlocks } from "../helpers/common";
+import { getStargateNFTErrorsInterface, mineBlocks } from "../helpers/common";
 import { ethers } from "hardhat";
 import { createLegacyNodeHolder } from "../helpers";
 import { StargateDelegation, StargateNFT } from "../../typechain-types";
@@ -53,7 +53,7 @@ describe("shard8: StargateNFT Stake and Delegate", () => {
       stargateNFTContract
         .connect(deployer)
         .transferFrom(await deployer.getAddress(), otherAccounts[0].address, tokenId)
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(stargateNFTContract, "TokenLocked");
 
     // check that auto renew is on
     expect(await stargateDelegationContract.getDelegationEndBlock(tokenId)).to.equal(
@@ -91,7 +91,7 @@ describe("shard8: StargateNFT Stake and Delegate", () => {
       stargateNFTContract
         .connect(deployer)
         .transferFrom(await deployer.getAddress(), otherAccounts[0].address, legacyNodeId)
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(stargateNFTContract, "TokenLocked");
 
     // check that auto renew is on
     expect(await stargateDelegationContract.getDelegationEndBlock(legacyNodeId)).to.equal(
@@ -114,7 +114,7 @@ describe("shard8: StargateNFT Stake and Delegate", () => {
 
     // This nft should be delegatable only by the user now that it's minted
     await expect(stargateDelegationContract.connect(randomAddress).delegate(tokenId, true)).to.be
-      .reverted;
+      .revertedWithCustomError(stargateDelegationContract, "UnauthorizedUser");
   });
 
   it("User can stake and delegate, then exit delegation then delegate again", async () => {
@@ -157,6 +157,6 @@ describe("shard8: StargateNFT Stake and Delegate", () => {
       StakeUtility.stakeAndDelegate(1, {
         value: ethers.parseEther("1"),
       })
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(await getStargateNFTErrorsInterface(), "NotOwner");
   });
 });
