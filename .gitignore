@@ -58,6 +58,7 @@ packages/contracts/docs/
 packages/contracts/scripts/data_exports/data
 packages/contracts/typechain-types/
 packages/contracts/metadata/stargateNFT/metadata.zip
+packages/contracts/scripts/lost_rewards/calculate/lost-rewards-compensation-local.json
 
 packages/contracts-artifacts/artifacts/
 packages/contracts-artifacts/dist-cjs/
