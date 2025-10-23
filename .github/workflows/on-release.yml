@@ -25,7 +25,7 @@ jobs:
 
       - name: Get version in package.json
         id: package-version
-        uses: notiz-dev/github-action-json-property@release
+        uses: notiz-dev/github-action-json-property@a5a9c668b16513c737c3e1f8956772c99c73f6e8 # release
         with:
           path: "packages/contracts-artifacts/package.json"
           prop_path: "version"
