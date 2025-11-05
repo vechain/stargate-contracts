@@ -1,0 +1,15 @@
+{
+  "name": "Delegator Mjolnir X",
+  "description": "StarGate Delegator Tokens represent on-chain VET staking positions. Each NFT is backed by staked VET, earns VTHO rewards, and enables access to ecosystem utilities and integrations.",
+  "image": "ipfs://bafkreicanslc5x6h3tbpomgiop6fzdfqb7fg4ecqlqwi26nd3m4wekhmxm",
+  "attributes": [
+    {
+      "trait_type": "Level",
+      "value": 7
+    },
+    {
+      "trait_type": "Locked",
+      "value": "No"
+    }
+  ]
+}

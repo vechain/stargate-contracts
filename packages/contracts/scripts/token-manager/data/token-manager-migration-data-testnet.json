@@ -1,7 +1,0 @@
-{
-  "environment": "testnet",
-  "network": "vechain_testnet",
-  "stargateNFTAddress": "0x887d9102f0003f1724d8fd5d4fe95a11572fcd77",
-  "nodeManagementV3Address": "0xde17d0a516c38c168d37685bb71465f656aa256e",
-  "migrations": []
-}

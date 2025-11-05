@@ -1,0 +1,15 @@
+{
+  "name": "Delegator Dawn",
+  "description": "StarGate Delegator Tokens represent on-chain VET staking positions. Each NFT is backed by staked VET, earns VTHO rewards, and enables access to ecosystem utilities and integrations.",
+  "image": "ipfs://bafybeiboqglapq7jk6wlbewtxomokmburqwpaljurkrtxi2r5x3iud56sy",
+  "attributes": [
+    {
+      "trait_type": "Level",
+      "value": 8
+    },
+    {
+      "trait_type": "Locked",
+      "value": "No"
+    }
+  ]
+}

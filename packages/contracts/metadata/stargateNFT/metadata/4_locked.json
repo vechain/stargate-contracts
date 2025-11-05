@@ -1,0 +1,15 @@
+{
+  "name": "Delegator VeThor X",
+  "description": "StarGate Delegator Tokens represent on-chain VET staking positions. Each NFT is backed by staked VET, earns VTHO rewards, and enables access to ecosystem utilities and integrations.",
+  "image": "ipfs://bafybeic2lufpth3ya3ug6z2p6kqm56ho4fcwln6yf7qfhncyilsaq3drqu",
+  "attributes": [
+    {
+      "trait_type": "Level",
+      "value": 4
+    },
+    {
+      "trait_type": "Locked",
+      "value": "Yes"
+    }
+  ]
+}
