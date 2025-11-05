@@ -1,12 +1,40 @@
 # Smart Contract Tests
 
-We organize smart contract tests by **feature**, **user story**, or **contract domain**, to avoid bloated files and improve maintainability.
+We have 2 type of tests:
 
-Each major contract (e.g. `StargateNFT`, `NodeManagement`) has its own directory under `tests/`, and each file within tests a specific aspect such as deployment, upgradability, settings libraries, or staking/migration flows.
+- Unit tests
+- Integration tests
+
+Integration tests are automatically run on the thor-solo network. Since we are running against the thor-solo network and the coverage plugin is not compatible with it, we dont have a coverage report for them.
+
+Unit tests are run on the hardhat network and we have a coverage report for them. The contracts that interact with the tested contracts are mocked and stored under the `test/mocks` folder.
+
+## How to run the tests
+
+### Unit tests
+
+```bash
+yarn test:hardhat
+```
+
+### Integration tests
+
+```bash
+yarn test:thor-solo
+```
+
+### Coverage
+
+```bash
+yarn test:coverage:solidity
+```
 
 ## Guidelines
 
 - Use **one top-level `describe()` block per test file**
+- We setup the state of the contracts before each test and clean it up after each test to ensure each test is independent
+  - We use the `createThorSoloContainer` helper to start the thor-solo network
+  - We use the `getOrDeployContracts` helper to deploy the contracts
 - Structure tests around contract behaviors and flows
 - Keep file names descriptive (e.g. `Deployment.test.ts`, `Upgradeability.test.ts`)
 
@@ -19,7 +47,7 @@ We use **test sharding in GitHub Actions (GHA)** to speed up contract test execu
 Each test file top-level `describe()` includes a **shard ID**, like:
 
 ```ts
-describe("shard1: StargateNFT Deployment", () => {
+describe("shard-i1: Boost Maturity Period", () => {
   ...
 });
 ```
@@ -34,15 +62,22 @@ This pattern allows us to parallelize tests without changing the code structure.
 
 1. Add a top-level describe() block to your test file with the appropriate shard ID prefix:
 
+For integration tests:
+
+- Prefix with `shard-i`
+- Use the shard number
+
 ```ts
-describe("shard102: StargateDelegation Settings", () => { ... });
+describe("shard-i1: Delegation", () => { ... });
 ```
 
-2. Add the shard to the GitHub Actions matrix in `.github/workflows/unit-tests.yml`. Provide a human-readable `label` alongside the shard ID for job display.
+For unit tests:
 
-To avoid conflicts, follow these shard ID ranges:
+- Prefix with `shard-u`
+- Use the shard number
 
-- StargateNFT shards start from 1
-- StargateDel shards, from 100
-- NodeManagement shards, from 1000
-- Other shards, from 10000
+```ts
+describe("shard-u1: Delegation", () => { ... });
+```
+
+2. Add the shard to the GitHub Actions matrix in `.github/workflows/unit-tests.yml` and `.github/workflows/integration-tests.yml`. Provide a human-readable `label` alongside the shard ID for job display.

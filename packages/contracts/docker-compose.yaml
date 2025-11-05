@@ -4,13 +4,16 @@ services:
     hostname: thor-solo
     container_name: thor-solo
     user: root
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       - DOCKER=1
     entrypoint: [
         "/bin/sh",
         "-c",
         # Set the blcok interval to 3600 seconds (1 hour) for testing purposes, this way the blockchain wont mine any unwanted blocks and we can control the mining process
-        "apk update && apk upgrade && apk add curl && thor solo --on-demand --data-dir /data/thor --api-addr 0.0.0.0:8669 --api-cors '*' --verbosity 10 --block-interval 3600",
+        "apk update --no-cache && apk add --no-cache curl && thor solo --hayabusa --on-demand --persist --data-dir /data/thor --api-addr 0.0.0.0:8669 --api-cors '*' --verbosity 10",
       ]
     ports:
       - "8669:8669"
@@ -23,29 +26,35 @@ services:
     networks:
       - vechain-thor
 
-  insight:
-    image: ghcr.io/vechain/insight-app:master
-    platform: linux/amd64
-    hostname: insight
-    container_name: insight
-    environment:
-      - VUE_APP_SOLO_URL=http://localhost:8669
-    ports:
-      - "8080:80"
-    networks:
-      - vechain-thor
+  # TODO: currently this image does not point to hayabusa genesis id
+  # use npx darren-devpal http://localhost:8669
+  #
+  # insight:
+  #   image: ghcr.io/vechain/insight-app:master
+  #   platform: linux/amd64
+  #   hostname: insight
+  #   container_name: insight
+  #   environment:
+  #     - VUE_APP_SOLO_URL=http://localhost:8669
+  #   ports:
+  #     - "8080:80"
+  #   networks:
+  #     - vechain-thor
 
-  inspector:
-    image: ghcr.io/vechain/inspector-app:master
-    platform: linux/amd64
-    hostname: inspector
-    container_name: inspector
-    environment:
-      - VUE_APP_SOLO_URL=http://localhost:8669
-    ports:
-      - "8081:80"
-    networks:
-      - vechain-thor
+  # TODO: currently this image does not point to hayabusa genesis id
+  # use npx darren-devpal http://localhost:8669
+  #
+  # inspector:
+  #   image: ghcr.io/vechain/inspector-app:master
+  #   platform: linux/amd64
+  #   hostname: inspector
+  #   container_name: inspector
+  #   environment:
+  #     - VUE_APP_SOLO_URL=http://localhost:8669
+  #   ports:
+  #     - "8081:80"
+  #   networks:
+  #     - vechain-thor
 
 networks:
   vechain-thor:

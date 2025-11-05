@@ -1,0 +1,13 @@
+
+.turbo
+cache
+artifacts
+deploy_output
+node_modules
+typechain-types
+coverage
+coverage.json
+docs/
+scripts/data_exports/data
+metadata
+temp-verify-*

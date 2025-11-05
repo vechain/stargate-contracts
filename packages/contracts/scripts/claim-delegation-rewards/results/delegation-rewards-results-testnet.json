@@ -1,0 +1,84 @@
+{
+  "environment": "testnet",
+  "network": "vechain_testnet",
+  "stargateNFTAddress": "0x887d9102f0003f1724d8fd5d4fe95a11572fcd77",
+  "stargateDelegationAddress": "0x32cb945dc25f4fc4214df63e3825045d6088b096",
+  "timestamp": "2025-11-04T13:35:56.216Z",
+  "totalRewardsToClaim": 8,
+  "successfulRewardsClaimed": 8,
+  "failedRewardsClaimed": 0,
+  "results": [
+    {
+      "tokenId": 1,
+      "owner": "0x3f90bF8b314C42005103B3c94505634fA680Dcee",
+      "status": "success",
+      "txHash": "0xfbf49f4b6c8bf340bddfe2c7dce2e276eb1878c4d87b21cb20d34bd000fb6a3d",
+      "dryRun": false,
+      "blockNumber": 23222499,
+      "claimedRewards": "7247245384000000000"
+    },
+    {
+      "tokenId": 4,
+      "owner": "0xc63fb7047BcCc9C7f91277a3FCC78f00D8CAD679",
+      "status": "success",
+      "txHash": "0xfbf49f4b6c8bf340bddfe2c7dce2e276eb1878c4d87b21cb20d34bd000fb6a3d",
+      "dryRun": false,
+      "blockNumber": 23222499,
+      "claimedRewards": "5972153438000000000"
+    },
+    {
+      "tokenId": 15614,
+      "owner": "0xc63fb7047BcCc9C7f91277a3FCC78f00D8CAD679",
+      "status": "success",
+      "txHash": "0xfbf49f4b6c8bf340bddfe2c7dce2e276eb1878c4d87b21cb20d34bd000fb6a3d",
+      "dryRun": false,
+      "blockNumber": 23222499,
+      "claimedRewards": "5434420850000000000"
+    },
+    {
+      "tokenId": 15617,
+      "owner": "0x3f90bF8b314C42005103B3c94505634fA680Dcee",
+      "status": "success",
+      "txHash": "0xfbf49f4b6c8bf340bddfe2c7dce2e276eb1878c4d87b21cb20d34bd000fb6a3d",
+      "dryRun": false,
+      "blockNumber": 23222499,
+      "claimedRewards": "6588973675000000000"
+    },
+    {
+      "tokenId": 15619,
+      "owner": "0xbFd9749B69126349426a8e130DC0Ef0dA73BEee0",
+      "status": "success",
+      "txHash": "0xfbf49f4b6c8bf340bddfe2c7dce2e276eb1878c4d87b21cb20d34bd000fb6a3d",
+      "dryRun": false,
+      "blockNumber": 23222499,
+      "claimedRewards": "6602228360000000000"
+    },
+    {
+      "tokenId": 15621,
+      "owner": "0xc63fb7047BcCc9C7f91277a3FCC78f00D8CAD679",
+      "status": "success",
+      "txHash": "0xfbf49f4b6c8bf340bddfe2c7dce2e276eb1878c4d87b21cb20d34bd000fb6a3d",
+      "dryRun": false,
+      "blockNumber": 23222499,
+      "claimedRewards": "5446977920000000000"
+    },
+    {
+      "tokenId": 15622,
+      "owner": "0xc63fb7047BcCc9C7f91277a3FCC78f00D8CAD679",
+      "status": "success",
+      "txHash": "0xfbf49f4b6c8bf340bddfe2c7dce2e276eb1878c4d87b21cb20d34bd000fb6a3d",
+      "dryRun": false,
+      "blockNumber": 23222499,
+      "claimedRewards": "5445582690000000000"
+    },
+    {
+      "tokenId": 15623,
+      "owner": "0xc63fb7047BcCc9C7f91277a3FCC78f00D8CAD679",
+      "status": "success",
+      "txHash": "0xfbf49f4b6c8bf340bddfe2c7dce2e276eb1878c4d87b21cb20d34bd000fb6a3d",
+      "dryRun": false,
+      "blockNumber": 23222499,
+      "claimedRewards": "5444187460000000000"
+    }
+  ]
+}

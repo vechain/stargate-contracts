@@ -11,13 +11,13 @@
 
 pragma solidity 0.8.20;
 
-import {DataTypesV1 as DataTypes} from "./DataTypesV1.sol";
-import {IStargateNFTV1 as IStargateNFT} from "../IStargateNFTV1.sol";
-import {IStargateDelegationV1 as IStargateDelegation} from "../../../StargateDelegation/V1/IStargateDelegationV1.sol";
-import {ITokenAuction} from "../../../../interfaces/ITokenAuction.sol";
-import {ErrorsV1 as Errors} from "./ErrorsV1.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {LevelsV1 as Levels} from "./LevelsV1.sol";
+import { DataTypesV1 as DataTypes } from "./DataTypesV1.sol";
+import { IStargateNFTV1 as IStargateNFT } from "../IStargateNFTV1.sol";
+import { IStargateDelegationV1 as IStargateDelegation } from "../../../StargateDelegation/V1/IStargateDelegationV1.sol";
+import { ITokenAuction } from "../../../../interfaces/ITokenAuction.sol";
+import { ErrorsV1 as Errors } from "./ErrorsV1.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { LevelsV1 as Levels } from "./LevelsV1.sol";
 
 /// @title Settings
 /// @notice Library for the StargateNFT contract to handle settings and configuration

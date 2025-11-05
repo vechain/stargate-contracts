@@ -1,0 +1,7 @@
+{
+  "environment": "local",
+  "network": "vechain_solo",
+  "stargateNFTAddress": "0xa5fc8749e5b867ab5cbd440cc6e468676ff0b28c",
+  "nodeManagementV3Address": "0x5e7928c5f7eb490e283fe7b84fa24dcf51aad7b6",
+  "migrations": []
+}
