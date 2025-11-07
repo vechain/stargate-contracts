@@ -65,7 +65,7 @@
     "contracts:hayabusa:get-claim-base-rewards-data:mainnet": "dotenv -v VITE_APP_ENV=mainnet -- turbo hayabusa:get-claim-base-rewards-data:mainnet --filter=contracts",
     "contracts:hayabusa:get-claim-delegation-rewards-data:solo": "dotenv -v VITE_APP_ENV=local -- turbo hayabusa:get-claim-delegation-rewards-data:solo --filter=contracts",
     "contracts:hayabusa:get-claim-delegation-rewards-data:testnet": "dotenv -v VITE_APP_ENV=testnet -- turbo hayabusa:get-claim-delegation-rewards-data:testnet --filter=contracts",
-    "contracts:hayabusa:get-claim-delegation-rewards-data:mainnet": "dotenv -v VITE_APP_ENV=mainnet -- turbo hayabusa:get-claim-delegation-rewards:mainnet --filter=contracts",
+    "contracts:hayabusa:get-claim-delegation-rewards-data:mainnet": "dotenv -v VITE_APP_ENV=mainnet -- turbo hayabusa:get-claim-delegation-rewards-data:mainnet --filter=contracts",
     "contracts:hayabusa:claim-base-rewards:solo": "dotenv -v VITE_APP_ENV=local -- turbo hayabusa:claim-base-rewards:solo --filter=contracts",
     "contracts:hayabusa:claim-base-rewards:testnet": "dotenv -v VITE_APP_ENV=testnet -- turbo hayabusa:claim-base-rewards:testnet --filter=contracts",
     "contracts:hayabusa:claim-base-rewards:mainnet": "dotenv -v VITE_APP_ENV=mainnet -- turbo hayabusa:claim-base-rewards:mainnet --filter=contracts",
@@ -91,20 +91,20 @@
     "packages/*"
   ],
   "resolutions": {
-    "elliptic": "^6.6.1",
-    "pbkdf2": "^3.1.3",
+    "elliptic": "6.6.1",
     "brace-expansion": "^2.0.2",
-    "form-data": "^4.0.4",
-    "tmp": "^0.2.4",
-    "sha.js": "^2.4.12",
-    "@metamask/sdk": "^0.33.1",
-    "axios": "^1.12.0",
-    "yargs-parser": "^5.0.1",
-    "tar": "^6.2.1",
-    "tough-cookie": "^4.1.3",
     "ws": "^8.17.1",
+    "axios": "^1.12.0",
+    "tmp": "^0.2.4",
+    "form-data": "^4.0.4",
+    "cookie": "^0.7.0",
     "parse-duration": "^2.1.3",
-    "esbuild": "^0.25.0",
-    "cookie": "^0.7.0"
+    "tough-cookie": "^4.1.3",
+    "tar": "^6.2.1",
+    "yargs-parser": "^5.0.1",
+    "sha.js": "^2.4.12",
+    "pbkdf2": "^3.1.3",
+    "@metamask/sdk": "^0.33.1",
+    "esbuild": "^0.25.0"
   }
 }

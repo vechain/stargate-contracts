@@ -2,15 +2,13 @@ import { defineConfig } from "../defineConfig";
 import { ethers } from "ethers";
 import { BLOCKS_PER_DAY, TokenLevelId } from "../type";
 
-export function createTestnetConfig() {
+export function createDevnetConfig() {
   return defineConfig({
-    VITE_APP_ENV: "testnet",
-    CONTRACTS_ADMIN_ADDRESS: "0xffE563D2d0B4e61CE482F54E46c44429AaB8993E",
+    VITE_APP_ENV: "devnet",
+    CONTRACTS_ADMIN_ADDRESS: "0xf077b491b355E64048cE21E3A6Fc4751eEeA77fa",
     // Legacy contracts
-    TOKEN_AUCTION_CONTRACT_ADDRESS:
-      "0x0000000000000000000000000000000000000000",
-    CLOCK_AUCTION_CONTRACT_ADDRESS:
-      "0x0000000000000000000000000000000000000000",
+    TOKEN_AUCTION_CONTRACT_ADDRESS: "0x0000000000000000000000000000000000000000",
+    CLOCK_AUCTION_CONTRACT_ADDRESS: "0x0000000000000000000000000000000000000000",
     // Stargate delegation contract
     VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL: [
       {
@@ -54,11 +52,10 @@ export function createTestnetConfig() {
         levelId: 10,
         rewardPerBlock: ethers.parseUnits("0.000180745", 18),
       },
-    ],
-    DELEGATION_PERIOD_DURATION: 30, // 30 blocks -> 5 minutes
+    ], // TODO: deprecated
+    DELEGATION_PERIOD_DURATION: 30, // 30 blocks -> 5 minutes // TODO: DEPRECATED
     VTHO_TOKEN_ADDRESS: "0x0000000000000000000000000000456E65726779",
-    STARGATE_DELEGATION_OPERATOR_ADDRESS:
-      "0xf077b491b355E64048cE21E3A6Fc4751eEeA77fa",
+    STARGATE_DELEGATION_OPERATOR_ADDRESS: "0xf077b491b355E64048cE21E3A6Fc4751eEeA77fa", // TODO: DEPRECATED
     // Stargate NFT contract
     TOKEN_COLLECTION_NAME: "StarGate Delegator Token",
     TOKEN_COLLECTION_SYMBOL: "SDT",
@@ -71,7 +68,7 @@ export function createTestnetConfig() {
           isX: false,
           vetAmountRequiredToStake: ethers.parseEther("1000000"),
           scaledRewardFactor: 150,
-          maturityBlocks: BLOCKS_PER_DAY * 30,
+          maturityBlocks: 180, // 30 min aprox
         },
         cap: 1382, // 2500 - (1100 + 18 None upgrading),
         circulatingSupply: 0,
@@ -83,7 +80,7 @@ export function createTestnetConfig() {
           isX: false,
           vetAmountRequiredToStake: ethers.parseEther("5000000"),
           scaledRewardFactor: 250,
-          maturityBlocks: BLOCKS_PER_DAY * 45,
+          maturityBlocks: 270, // 45 min aprox
         },
         cap: 234, // 300 - (60 + 6 Strength upgrading)
         circulatingSupply: 0,
@@ -157,7 +154,7 @@ export function createTestnetConfig() {
           isX: false,
           vetAmountRequiredToStake: ethers.parseEther("10000"),
           scaledRewardFactor: 100,
-          maturityBlocks: BLOCKS_PER_DAY * 2,
+          maturityBlocks: 12, // 2 min aprox
         },
         cap: 500000,
         circulatingSupply: 0,
@@ -169,7 +166,7 @@ export function createTestnetConfig() {
           isX: false,
           vetAmountRequiredToStake: ethers.parseEther("50000"),
           scaledRewardFactor: 115,
-          maturityBlocks: BLOCKS_PER_DAY * 5,
+          maturityBlocks: 30, // 5 min aprox
         },
         cap: 100000,
         circulatingSupply: 0,
@@ -181,21 +178,18 @@ export function createTestnetConfig() {
           isX: false,
           vetAmountRequiredToStake: ethers.parseEther("200000"),
           scaledRewardFactor: 130,
-          maturityBlocks: BLOCKS_PER_DAY * 15,
+          maturityBlocks: 90, // 15 min aprox
         },
         cap: 25000,
         circulatingSupply: 0,
       },
     ],
-    LEGACY_LAST_TOKEN_ID: 15611,
-    BASE_TOKEN_URI:
-      "ipfs://bafybeibmpgruasnoqgyemcprpkygtelvxl3b5d2bf5aqqciw6dds33yw7y/metadata/",
+    LEGACY_LAST_TOKEN_ID: 100000,
+    BASE_TOKEN_URI: "ipfs://bafybeibmpgruasnoqgyemcprpkygtelvxl3b5d2bf5aqqciw6dds33yw7y/metadata/",
     WHITELIST_ENTRIES_V2: [], // Overwritten on deploy
     // NodeManagement contract
-    NODE_MANAGEMENT_CONTRACT_ADDRESS:
-      "0x0000000000000000000000000000000000000000",
-    PROTOCOL_STAKER_CONTRACT_ADDRESS:
-      "0x00000000000000000000000000005374616B6572",
+    NODE_MANAGEMENT_CONTRACT_ADDRESS: "0x0000000000000000000000000000000000000000",
+    PROTOCOL_STAKER_CONTRACT_ADDRESS: "0x00000000000000000000000000005374616B6572",
     MAX_CLAIMABLE_PERIODS: 832,
     STARGATE_NFT_BOOST_LEVEL_IDS: [
       TokenLevelId.Dawn,
@@ -213,5 +207,5 @@ export function createTestnetConfig() {
       530092592592593000n,
       1995370370370370000n,
     ],
-  });
+  }); 
 }

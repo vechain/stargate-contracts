@@ -1,6 +1,6 @@
 import { defineConfig } from "../defineConfig";
-import { initialTokenLevels } from "../StargateNFT/local";
 import { ethers } from "ethers";
+import { TokenLevelId } from "../type";
 
 export function createLocalConfig() {
   return defineConfig({
@@ -59,11 +59,154 @@ export function createLocalConfig() {
     // Stargate NFT contract
     TOKEN_COLLECTION_NAME: "StarGate Delegator Token",
     TOKEN_COLLECTION_SYMBOL: "SDT",
-    TOKEN_LEVELS: initialTokenLevels,
+    TOKEN_LEVELS: [
+      // Legacy normal levels
+      {
+        level: {
+          id: TokenLevelId.Strength,
+          name: "Strength",
+          isX: false,
+          vetAmountRequiredToStake: ethers.parseEther("100"),
+          scaledRewardFactor: 150,
+          maturityBlocks: 10, 
+        },
+        cap: 2499, // 2500 - 1
+        circulatingSupply: 0,
+      },
+      {
+        level: {
+          id: TokenLevelId.Thunder,
+          name: "Thunder",
+          isX: false,
+          vetAmountRequiredToStake: ethers.parseEther("500"),
+          scaledRewardFactor: 250,
+          maturityBlocks: 20,
+        },
+        cap: 298, // 300 - (1 + 1 Strength upgrading)
+        circulatingSupply: 0,
+      },
+      {
+        level: {
+          id: TokenLevelId.Mjolnir,
+          name: "Mjolnir",
+          isX: false,
+          vetAmountRequiredToStake: ethers.parseEther("1500"),
+          scaledRewardFactor: 350,
+          // change this to 300 for boost tests
+          maturityBlocks: 300,
+        },
+        cap: 99, // 100 - 1
+        circulatingSupply: 0,
+      },
+      // Legacy X Levels
+      {
+        level: {
+          id: TokenLevelId.VeThorX,
+          name: "VeThorX",
+          isX: true,
+          vetAmountRequiredToStake: ethers.parseEther("60"),
+          scaledRewardFactor: 200,
+          maturityBlocks: 0,
+        },
+        cap: 0, // 1
+        circulatingSupply: 0,
+      },
+      {
+        level: {
+          id: TokenLevelId.StrengthX,
+          name: "StrengthX",
+          isX: true,
+          vetAmountRequiredToStake: ethers.parseEther("160"),
+          scaledRewardFactor: 300,
+          maturityBlocks: 0,
+        },
+        cap: 0, // 1
+        circulatingSupply: 0,
+      },
+      {
+        level: {
+          id: TokenLevelId.ThunderX,
+          name: "ThunderX",
+          isX: true,
+          vetAmountRequiredToStake: ethers.parseEther("560"),
+          scaledRewardFactor: 400,
+          maturityBlocks: 0,
+        },
+        cap: 0, // No ThunderX
+        circulatingSupply: 0,
+      },
+      {
+        level: {
+          id: TokenLevelId.MjolnirX,
+          name: "MjolnirX",
+          isX: true,
+          vetAmountRequiredToStake: ethers.parseEther("1560"),
+          scaledRewardFactor: 500,
+          maturityBlocks: 0,
+        },
+        cap: 0, // 1
+        circulatingSupply: 0,
+      },
+      // New levels
+      {
+        level: {
+          id: TokenLevelId.Dawn,
+          name: "Dawn",
+          isX: false,
+          vetAmountRequiredToStake: ethers.parseEther("1"),
+          scaledRewardFactor: 100,
+          maturityBlocks: 5,
+        },
+        cap: 500000,
+        circulatingSupply: 0,
+      },
+      {
+        level: {
+          id: TokenLevelId.Lightning,
+          name: "Lightning",
+          isX: false,
+          vetAmountRequiredToStake: ethers.parseEther("5"),
+          scaledRewardFactor: 115,
+          maturityBlocks: 10,
+        },
+        cap: 100000,
+        circulatingSupply: 0,
+      },
+      {
+        level: {
+          id: TokenLevelId.Flash,
+          name: "Flash",
+          isX: false,
+          vetAmountRequiredToStake: ethers.parseEther("20"),
+          scaledRewardFactor: 130,
+          maturityBlocks: 15,
+        },
+        cap: 25000,
+        circulatingSupply: 0,
+      },
+    ],
     LEGACY_LAST_TOKEN_ID: 100000,
     BASE_TOKEN_URI: "ipfs://bafybeibmpgruasnoqgyemcprpkygtelvxl3b5d2bf5aqqciw6dds33yw7y/metadata/",
     WHITELIST_ENTRIES_V2: [], // Overwritten on deploy
     // NodeManagement contract
     NODE_MANAGEMENT_CONTRACT_ADDRESS: "0x45d5CA3f295ad8BCa291cC4ecd33382DE40E4FAc",
+    PROTOCOL_STAKER_CONTRACT_ADDRESS: "0x00000000000000000000000000005374616B6572",
+    MAX_CLAIMABLE_PERIODS: 832,
+    STARGATE_NFT_BOOST_LEVEL_IDS: [
+      TokenLevelId.Dawn,
+      TokenLevelId.Lightning,
+      TokenLevelId.Flash,
+      TokenLevelId.Strength,
+      TokenLevelId.Thunder,
+      TokenLevelId.Mjolnir,
+    ],
+    STARGATE_NFT_BOOST_PRICES_PER_BLOCK: [
+      539351851851852n,
+      2870370370370370n,
+      12523148148148100n,
+      75925925925925900n,
+      530092592592593000n,
+      1995370370370370000n,
+    ],
   });
 }
