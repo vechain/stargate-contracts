@@ -48,7 +48,7 @@
     "token-manager:migrate:mainnet": "VERBOSE=true npx hardhat run scripts/token-manager/migrateNodesFromJson.ts --network vechain_mainnet",
     "hayabusa:get-claim-base-rewards-data:solo": "VERBOSE=true npx hardhat run scripts/claim-base-rewards/get-claim-base-rewards-data.ts --network vechain_solo",
     "hayabusa:get-claim-base-rewards-data:testnet": "VERBOSE=true npx hardhat run scripts/claim-base-rewards/get-claim-base-rewards-data.ts --network vechain_testnet",
-    "hayabusa:get-claim-base-rewards-data:mainnet": "VERBOSE=true npx hardhat run scripts/claim-base.rewards/get-claim-base-rewards-data.ts --network vechain_mainnet",
+    "hayabusa:get-claim-base-rewards-data:mainnet": "VERBOSE=true npx hardhat run scripts/claim-base-rewards/get-claim-base-rewards-data.ts --network vechain_mainnet",
     "hayabusa:claim-base-rewards:solo": "VERBOSE=true npx hardhat run scripts/claim-base-rewards/claim-base-rewards-from-json.ts --network vechain_solo",
     "hayabusa:claim-base-rewards:testnet": "VERBOSE=true npx hardhat run scripts/claim-base-rewards/claim-base-rewards-from-json.ts --network vechain_testnet",
     "hayabusa:claim-base-rewards:mainnet": "VERBOSE=true npx hardhat run scripts/claim-base-rewards/claim-base-rewards-from-json.ts --network vechain_mainnet",

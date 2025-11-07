@@ -234,6 +234,28 @@ async function main() {
 
     console.log("\n✅ Core Deployment Completed Successfully!");
 
+    console.log("\n🔧 Configuring Legacy Nodes contract...");
+    // Configure Mocked Nodes contract
+    await vechainNodesMock.setSaleAuctionAddress(
+        clockAuctionMockAddress || contractsConfig.CLOCK_AUCTION_CONTRACT_ADDRESS
+    );
+    console.log(
+        "    ✅ Sale auction address set to",
+        clockAuctionMockAddress || contractsConfig.CLOCK_AUCTION_CONTRACT_ADDRESS
+    );
+    await vechainNodesMock.addOperator(deployer.address);
+    console.log("    ✅ Deployer added as operator to legacy nodes contract", deployer.address);
+    await vechainNodesMock.addOperator(stargateNFTProxyAddress);
+    console.log(
+        "    ✅ StargateNFT added as operator to legacy nodes contract",
+        stargateNFTProxyAddress
+    );
+    // Set the transfer cooldown and lead time to 0 to avoid the need to wait for them
+    await vechainNodesMock.setTransferCooldown(0);
+    console.log("    ✅ Transfer cooldown set to 0");
+    await vechainNodesMock.setLeadTime(0);
+    console.log("    ✅ Lead time set to 0");
+
     console.log("\n📋 Deployment Summary");
     console.log("=".repeat(60));
 

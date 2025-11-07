@@ -31,7 +31,10 @@ describe("shard-u106: StargateNFT: Settings", () => {
     });
 
     it("should be able to set the base URI if the caller has the MANAGER_ROLE", async () => {
-        stargateNFTContract.grantRole(await stargateNFTContract.MANAGER_ROLE(), deployer.address);
+        await stargateNFTContract.grantRole(
+            await stargateNFTContract.MANAGER_ROLE(),
+            deployer.address
+        );
         await expect(stargateNFTContract.connect(deployer).setBaseURI("https://example.com")).to.not
             .be.reverted;
         expect(await stargateNFTContract.baseURI()).to.equal("https://example.com");

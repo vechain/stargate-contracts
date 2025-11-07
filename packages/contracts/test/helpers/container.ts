@@ -16,7 +16,7 @@ export const createThorSoloContainer = async (): Promise<StartedTestContainer> =
         .withEntrypoint([
             "/bin/sh",
             "-c",
-            "apk update && apk upgrade && apk add curl && thor solo --hayabusa --on-demand --data-dir /data/thor --api-addr 0.0.0.0:8669 --api-cors '*' --verbosity 10 --block-interval 3600",
+            "thor solo --hayabusa --on-demand --data-dir /data/thor --api-addr 0.0.0.0:8669 --api-cors '*' --verbosity 10 --block-interval 3600",
         ])
         .start();
 };
