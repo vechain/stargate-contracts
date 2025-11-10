@@ -17,7 +17,7 @@ interface DeployedContractsAddresses {
     TokenAuctionMock: string;
     ClockAuctionMock: string;
     StargateNFT: string;
-    StargateDelegation: string;
+    StargateDelegation?: string;
     NodeManagement: string;
     Stargate: string;
 }
@@ -209,7 +209,11 @@ export async function deployAll(config: ContractsConfig): Promise<DeployedContra
                 version: 2,
             },
             {
-                args: [stargateProxyAddress],
+                args: [
+                    stargateProxyAddress,
+                    config.STARGATE_NFT_BOOST_LEVEL_IDS || [],
+                    config.STARGATE_NFT_BOOST_PRICES_PER_BLOCK || [],
+                ],
                 version: 3,
             },
         ],

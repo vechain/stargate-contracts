@@ -6,6 +6,7 @@ import { AppConfig, getConfig, getContractsConfig } from "@repo/config";
 import { Network } from "@repo/constants";
 import { deployAll } from "../deploy/deploy";
 import { GenesisBlock } from "../thor-solo/waitForThorSolo";
+import { ZERO_ADDRESS } from "@vechain/sdk-core";
 
 const config = getConfig();
 
@@ -21,7 +22,7 @@ export const overrideLocalConfigWithNewContracts = async (
         ...config,
         legacyNodesContractAddress: contracts.TokenAuctionMock,
         stargateNFTContractAddress: contracts.StargateNFT,
-        stargateDelegationContractAddress: contracts.StargateDelegation,
+        stargateDelegationContractAddress: contracts.StargateDelegation || ZERO_ADDRESS,
         nodeManagementContractAddress: contracts.NodeManagement,
         stargateContractAddress: contracts.Stargate,
     };

@@ -179,6 +179,9 @@
     "deploy:solo": {
       "dependsOn": ["@repo/config#check-or-generate-local-config"]
     },
+    "deploy:devnet": {
+      "dependsOn": ["@repo/config#check-or-generate-local-config"]
+    },
     "deploy:testnet": {
       "dependsOn": ["@repo/config#check-or-generate-local-config"]
     },

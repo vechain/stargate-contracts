@@ -6,6 +6,7 @@ import {
     deployAndUpgrade,
     deployUpgradeableWithoutInitialization,
     initializeProxyAllVersions,
+    saveContractsToFile,
 } from "../../../helpers";
 import {
     NodeManagementV4,
@@ -13,6 +14,7 @@ import {
     StargateDelegation,
     StargateNFT,
 } from "../../../../typechain-types";
+import { overrideLocalConfigWithNewContracts } from "../../../helpers/config";
 
 type DeployedContractsAddresses = {
     TokenAuctionMock: string;
@@ -208,7 +210,11 @@ async function main() {
                 version: 2,
             },
             {
-                args: [stargateProxyAddress],
+                args: [
+                    stargateProxyAddress,
+                    contractsConfig.STARGATE_NFT_BOOST_LEVEL_IDS || [],
+                    contractsConfig.STARGATE_NFT_BOOST_PRICES_PER_BLOCK || [],
+                ],
                 version: 3,
             },
         ],
@@ -305,6 +311,10 @@ async function main() {
     Object.entries(libraries).forEach(([name, address]) => {
         console.log(`  • ${name}: ${address}`);
     });
+
+    await overrideLocalConfigWithNewContracts(contractAddresses, appConfig.network);
+    await saveContractsToFile(contractAddresses as unknown as Record<string, string>, libraries);
+    console.log("💾 Contract addresses saved to file and config overridden");
 
     console.log("\n🎉 All Done! Deployment completed successfully!");
     console.log("=".repeat(60));
