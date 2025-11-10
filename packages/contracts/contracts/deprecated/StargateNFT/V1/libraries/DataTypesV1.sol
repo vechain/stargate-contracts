@@ -11,10 +11,10 @@
 
 pragma solidity 0.8.20;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
-import {ITokenAuction} from "../../../../interfaces/ITokenAuction.sol";
-import {IStargateDelegationV1 as IStargateDelegation} from "../../../StargateDelegation/V1/IStargateDelegationV1.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Checkpoints } from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+import { ITokenAuction } from "../../../../interfaces/ITokenAuction.sol";
+import { IStargateDelegationV1 as IStargateDelegation } from "../../../StargateDelegation/V1/IStargateDelegationV1.sol";
 
 /// @title DataTypes
 /// @notice Library for the StargateNFT contract to store data structure definitions used across the contract and libraries

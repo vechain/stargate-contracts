@@ -26,19 +26,11 @@ library Errors {
     /// @notice Thrown upon initialization of contract when a value is zero, eg legacy last token ID
     error ValueCannotBeZero();
 
-    /// @notice Thrown when a value is invalid, eg token id
-    error InvalidValue(uint256 value);
-
     /// @notice Thrown upon initialization of contract when a list is empty, eg token levels
     error ArrayCannotHaveZeroLength();
 
-    // ------------------ Token Errors ------------------ //
-
-    /// @notice The NFT is locked and cannot be transferred
-    error TokenLocked();
-
-    /// @notice Thrown upon validation of a token id, when the token id does not exist on StargateNFT
-    error TokenDoesNotExist(uint256 tokenId);
+    /// @notice Thrown upon initialization of when two arrays have different lengths
+    error ArraysLengthMismatch();
 
     // ------------------ Level Errors ------------------ //
 
@@ -51,10 +43,10 @@ library Errors {
     /// @notice Thrown upon staking, when the circulating supply has reached cap for the level
     error LevelCapReached(uint8 levelId);
 
-    // ------------------ Mint, Migrate and Burn Errors ------------------ //
+    /// @notice Thrown upon validation of a level id, when the level is an X level
+    error CannotMintXToken(uint8 levelId);
 
-    /// @notice Thrown upon staking or migrating a token, when the tx value is not the exact amount required for the level
-    error VetAmountMismatch(uint8 levelId, uint256 required, uint256 provided);
+    // ------------------ Mint, Migrate and Burn Errors ------------------ //
 
     /// @notice Thrown upon migrating or unstaking a token, when the given token id cannot be migrated or unstaked
     error TokenNotEligible(uint256 tokenId);
@@ -74,32 +66,48 @@ library Errors {
     /// @notice Thrown at the end of the migration process, when contracts are not in the expected state
     error TokenMigrationFailed(uint256 tokenId);
 
-    /// @notice Thrown when the token minting fails
-    error TokenMintingFailed();
-
     // ------------------ Authorization Errors ------------------ //
 
     /// @notice The caller is not authorized to call the function
     error UnauthorizedCaller(address caller);
-
-    // ------------------ VTHO Rewards Errors ------------------ //
-
-    /// @notice Thrown when VTHO token transfer fails during claiming rewards
-    error VthoTransferFailed();
-
-    /// @notice Thrown when the token is not staking VET
-    error NotStakingVet(uint256 tokenId);
-
-    /// @notice Thrown when the token has no VTHO rewards to claim
-    error NoBaseVthoRewardsToClaim(uint256 tokenId);
 
     // ------------------ Circulating Supply Errors ------------------ //
 
     /// @notice Thrown when the block number is in the future
     error BlockInFuture();
 
-    // ------------------ Whitelist Errors ------------------ //
+    // ------------------ Boost Errors ------------------ //
 
-    /// @notice Thrown upon removal of a whitelist entry, when the entry is not found
-    error WhitelistEntryNotFound(address owner);
+    /// @notice Thrown when the token is not eligible for boosting
+    error MaturityPeriodEnded(uint256 tokenId);
+
+    /// @notice Thrown when the balance is insufficient for the operation
+    error InsufficientBalance(
+        address tokenAddress,
+        address owner,
+        uint256 required,
+        uint256 provided
+    );
+
+    /// @notice Thrown when the allowance is insufficient for the operation
+    error InsufficientAllowance(
+        address owner,
+        address spender,
+        uint256 currentAllowance,
+        uint256 requiredAmount
+    );
+
+    // ------------------ Node Management Errors ------------------ //
+
+    /// @notice Thrown when the node manager address is the zero address
+    error ManagerZeroAddress();
+
+    /// @notice Thrown when the node manager is the same as the caller
+    error SelfManager();
+
+    /// @notice Thrown when the token manager is not the token manager or the token owner
+    error NotTokenManagerOrOwner(uint256 tokenId);
+
+    /// @notice Thrown when the token is not delegated
+    error NoTokenManager(uint256 tokenId);
 }

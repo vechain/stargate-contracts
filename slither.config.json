@@ -1,0 +1,196 @@
+{
+  "exclude_informational": true,
+
+  "suppressions": [
+    {
+      "check": "reentrancy-eth",
+      "file": "contracts/Multisig.sol",
+      "function": "executeTransaction\\(uint256\\)",
+      "reason": "CEI done; false positive"
+    },
+
+    {
+      "check": "unused-return",
+      "file": "packages/contracts/contracts/Stargate.sol",
+      "function": "_getDelegationStatus\\(Stargate.StargateStorage,uint256\\)",
+      "reason": "CEI done; false positive"
+    },
+
+    {
+      "check": "low-level-calls",
+      "file": "contracts/Proxy.sol",
+      "line": 73,
+      "reason": "intended delegatecall"
+    },
+
+    {
+      "check": "arbitrary-send",
+      "file": "contracts/tokens/Token.sol",
+      "lineRange": "120-128",
+      "reason": "admin-only sweep, reviewed"
+    },
+
+    {
+      "rule_id": "arbitrary-send-erc20",
+      "contract": "MintingLogic",
+      "function": "boostOnBehalfOf",
+      "reason": "admin-only function, reviewed"
+    },
+    {
+      "rule_id": "uninitialized-local",
+      "contract": "Token",
+      "function": "xTokensCount",
+      "reason": "count is uninitialized but default value is 0, reviewed"
+    },
+    {
+      "rule_id": "uninitialized-local",
+      "contract": "Token",
+      "function": "ownerTotalVetStaked",
+      "reason": "totalVetStaked is uninitialized but default value is 0, reviewed"
+    },
+    {
+      "rule_id": "uninitialized-local",
+      "contract": "Stargate",
+      "function": "_claimableRewards",
+      "reason": "claimableAmount is uninitialized but default value is 0, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "Stargate",
+      "function": "_delegate",
+      "reason": "ignored return value, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "Stargate",
+      "function": "_updatePeriodEffectiveStake",
+      "reason": "ignored return value, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "Stargate",
+      "function": "requestDelegationExit",
+      "reason": "ignored return value, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "Stargate",
+      "function": "migrateAndDelegate",
+      "reason": "ignored return value, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "Stargate",
+      "function": "migrateTokenManager",
+      "reason": "ignored return value, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "TokenManager",
+      "function": "addTokenManager",
+      "reason": "ignored return value, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "Levels",
+      "function": "_checkpointLevelCirculatingSupply",
+      "reason": "ignored return value, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "Stargate",
+      "function": "_claimableDelegationPeriods",
+      "reason": "ignored return value, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "StargateNFT",
+      "function": "_update",
+      "reason": "ignored return value, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "Stargate",
+      "function": "_claimableDelegationPeriods",
+      "reason": "ignored return value, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "Token",
+      "function": "_requireTokenExists",
+      "reason": "ignored return value, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "TokenManager",
+      "function": "_requireToken",
+      "reason": "ignored return value, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "TokenManager",
+      "function": "isManagedByOwner",
+      "reason": "ignored return value, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "TokenManager",
+      "function": "removeTokenManager",
+      "reason": "ignored return value, reviewed"
+    },
+    {
+      "rule_id": "calls-loop",
+      "contract": "Token",
+      "function": "_requiresTokenExists",
+      "reason": "external call to ownerOf, reviewed"
+    },
+    {
+      "rule_id": "calls-loop",
+      "contract": "TokenManager",
+      "function": "tokensOverview",
+      "reason": "external call to the DataTypes library when looping, reviewed"
+    },
+    {
+      "rule_id": "reentrancy-events",
+      "contract": "MintingLogic",
+      "function": "_burn",
+      "reason": "call to _burnCallback on StargateNFT which is a trusted contract, reviewed"
+    },
+    {
+      "rule_id": "reentrancy-events",
+      "contract": "MintingLogic",
+      "function": "_migrate",
+      "reason": "call to _safeMintCallback on StargateNFT which is a trusted contract, reviewed"
+    },
+    {
+      "rule_id": "reentrancy-events",
+      "contract": "MintingLogic",
+      "function": "_mint",
+      "reason": "call to _safeMintCallback on StargateNFT which is a trusted contract, reviewed"
+    },
+    {
+      "rule_id": "incorrect-equality",
+      "contract": "StargateNFT",
+      "function": "_idsOwnedBy",
+      "reason": "uses the result of balanceOf function which always returns 0 if the address has no tokens, reviewed"
+    },
+    {
+      "rule_id": "incorrect-equality",
+      "contract": "StargateNFT",
+      "function": "_hasTokenOfType",
+      "reason": "uses the result of balanceOf function which always returns 0 if the address has no tokens, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "Stargate",
+      "function": "unstake",
+      "reason": "ignored return value, reviewed"
+    },
+    {
+      "rule_id": "unused-return",
+      "contract": "Stargate",
+      "function": "hasRequestedExit",
+      "reason": "ignored return value, reviewed"
+    }
+  ]
+}

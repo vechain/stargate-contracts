@@ -1,0 +1,47 @@
+{
+  "environment": "testnet",
+  "network": "vechain_testnet",
+  "stargateNFTAddress": "0x887d9102f0003f1724d8fd5d4fe95a11572fcd77",
+  "timestamp": "2025-11-04T14:50:39.847Z",
+  "totalMigrations": 6,
+  "successfulMigrations": 6,
+  "failedMigrations": 0,
+  "results": [
+    {
+      "tokenId": 4,
+      "tokenManager": "0x9934AA8FEd9cABdCCaeB622C8900B9f409c37cf7",
+      "status": "success",
+      "txHash": "0xa7280a90788c37b6ffaa71e986efe46c97acd71665246512e378150ff39c3f3a"
+    },
+    {
+      "tokenId": 15613,
+      "tokenManager": "0x9934AA8FEd9cABdCCaeB622C8900B9f409c37cf7",
+      "status": "success",
+      "txHash": "0xa7280a90788c37b6ffaa71e986efe46c97acd71665246512e378150ff39c3f3a"
+    },
+    {
+      "tokenId": 15614,
+      "tokenManager": "0x3f90bF8b314C42005103B3c94505634fA680Dcee",
+      "status": "success",
+      "txHash": "0xa7280a90788c37b6ffaa71e986efe46c97acd71665246512e378150ff39c3f3a"
+    },
+    {
+      "tokenId": 15619,
+      "tokenManager": "0x3f90bF8b314C42005103B3c94505634fA680Dcee",
+      "status": "success",
+      "txHash": "0xa7280a90788c37b6ffaa71e986efe46c97acd71665246512e378150ff39c3f3a"
+    },
+    {
+      "tokenId": 15620,
+      "tokenManager": "0x3f90bF8b314C42005103B3c94505634fA680Dcee",
+      "status": "success",
+      "txHash": "0xa7280a90788c37b6ffaa71e986efe46c97acd71665246512e378150ff39c3f3a"
+    },
+    {
+      "tokenId": 15623,
+      "tokenManager": "0x3f90bF8b314C42005103B3c94505634fA680Dcee",
+      "status": "success",
+      "txHash": "0xa7280a90788c37b6ffaa71e986efe46c97acd71665246512e378150ff39c3f3a"
+    }
+  ]
+}

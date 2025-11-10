@@ -11,11 +11,11 @@
 
 pragma solidity 0.8.20;
 
-import {DataTypesV1 as DataTypes} from "./DataTypesV1.sol";
-import {IStargateNFTV1 as IStargateNFT} from "../IStargateNFTV1.sol";
-import {ClockV1 as Clock} from "./ClockV1.sol";
-import {ErrorsV1 as Errors} from "./ErrorsV1.sol";
-import {LevelsV1 as Levels} from "./LevelsV1.sol";
+import { DataTypesV1 as DataTypes } from "./DataTypesV1.sol";
+import { IStargateNFTV1 as IStargateNFT } from "../IStargateNFTV1.sol";
+import { ClockV1 as Clock } from "./ClockV1.sol";
+import { ErrorsV1 as Errors } from "./ErrorsV1.sol";
+import { LevelsV1 as Levels } from "./LevelsV1.sol";
 
 /// @title Token
 /// @notice Library for the StargateNFT contract to get the token details

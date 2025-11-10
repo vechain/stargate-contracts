@@ -11,13 +11,13 @@
 
 pragma solidity 0.8.20;
 
-import {DataTypesV1 as DataTypes} from "./DataTypesV1.sol";
-import {TokenV1 as Token} from "./TokenV1.sol";
-import {ClockV1 as Clock} from "./ClockV1.sol";
-import {ErrorsV1 as Errors} from "./ErrorsV1.sol";
-import {IStargateNFTV1 as IStargateNFT} from "../IStargateNFTV1.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { DataTypesV1 as DataTypes } from "./DataTypesV1.sol";
+import { TokenV1 as Token } from "./TokenV1.sol";
+import { ClockV1 as Clock } from "./ClockV1.sol";
+import { ErrorsV1 as Errors } from "./ErrorsV1.sol";
+import { IStargateNFTV1 as IStargateNFT } from "../IStargateNFTV1.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title VetGeneratedVtho
 /// @notice VeChain has a dual-token economic model where VET holders automatically generate VTHO over time.

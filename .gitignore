@@ -48,6 +48,7 @@ src/typechain
 .turbo
 
 packages/config/local.ts
+packages/config/solo.ts
 
 packages/contracts/artifacts/
 packages/contracts/cache/
@@ -58,19 +59,29 @@ packages/contracts/docs/
 packages/contracts/scripts/data_exports/data
 packages/contracts/typechain-types/
 packages/contracts/metadata/stargateNFT/metadata.zip
-packages/contracts/scripts/lost_rewards/calculate/lost-rewards-compensation-local.json
+packages/contracts/temp-verify-*
+packages/contracts/scripts/token-manager/results/migration-dryrun-*.json
+packages/contracts/scripts/token-manager/results/migration-results-local.json
+packages/contracts/scripts/token-manager/results/migration-results-devnet.json
+packages/contracts/scripts/token-manager/data/
+packages/contracts/scripts/claim-base-rewards/results/base-rewards-dryrun-*.json
+packages/contracts/scripts/claim-base-rewards/results/base-rewards-results-local.json
+packages/contracts/scripts/claim-base-rewards/data/
+packages/contracts/scripts/claim-delegation-rewards/results/delegation-rewards-dryrun-*.json
+packages/contracts/scripts/claim-delegation-rewards/results/delegation-rewards-results-local.json
+packages/contracts/scripts/claim-delegation-rewards/data/
+packages/contracts/scripts/claim-rewards/data/
 
 packages/contracts-artifacts/artifacts/
+packages/contracts-artifacts/typechain-types/
 packages/contracts-artifacts/dist-cjs/
 packages/contracts-artifacts/dist-esm/
-packages/contracts-artifacts/typechain-types/
-
 
 packages/contracts/.openzeppelin/unknown-246.json
-packages/contracts/sourcify-verification*
 
 *.cookie
 
 .history
+.vercel
 
-packages/contracts/metadata/
+packages/contracts/scripts/lost_rewards/calculate/lost-rewards-compensation-local.json

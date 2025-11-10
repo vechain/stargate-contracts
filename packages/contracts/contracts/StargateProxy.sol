@@ -3,8 +3,8 @@
 
 pragma solidity 0.8.20;
 
-import {Proxy} from "@openzeppelin/contracts/proxy/Proxy.sol";
-import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
+import { Proxy } from "@openzeppelin/contracts/proxy/Proxy.sol";
+import { ERC1967Utils } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 
 /**
  * Forked from OZ.
@@ -38,13 +38,7 @@ contract StargateProxy is Proxy {
      * the https://eth.wiki/json-rpc/API#eth_getstorageat[`eth_getStorageAt`] RPC call.
      * `0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc`
      */
-    function _implementation()
-        internal
-        view
-        virtual
-        override
-        returns (address)
-    {
+    function _implementation() internal view virtual override returns (address) {
         return ERC1967Utils.getImplementation();
     }
 }

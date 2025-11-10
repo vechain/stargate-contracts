@@ -3,9 +3,8 @@ export * from "./type";
 import { createTestnetConfig } from "./envs/testnet";
 import { createMainnetConfig } from "./envs/mainnet";
 import { createLocalConfig } from "./envs/local";
-
-export const EnvConfigValues = ["testnet", "mainnet", "local"] as const;
-export type EnvConfig = (typeof EnvConfigValues)[number];
+import { createDevnetConfig } from "./envs/devnet";
+import { EnvConfig } from "./type";
 
 export function getContractsConfig(env: EnvConfig) {
   switch (env) {
@@ -15,6 +14,8 @@ export function getContractsConfig(env: EnvConfig) {
       return createMainnetConfig();
     case "local":
       return createLocalConfig();
+    case "devnet":
+      return createDevnetConfig();
 
     default:
       throw new Error(`Invalid ENV "${env}"`);

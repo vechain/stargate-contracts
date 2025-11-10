@@ -11,26 +11,26 @@
 
 pragma solidity 0.8.20;
 
-import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import {ERC721EnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
-import {ERC721PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721PausableUpgradeable.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {IStargateNFTV1 as IStargateNFT} from "./IStargateNFTV1.sol";
-import {ITokenAuction} from "../../../interfaces/ITokenAuction.sol";
-import {IStargateDelegationV1 as IStargateDelegation} from "../../StargateDelegation/V1/IStargateDelegationV1.sol";
-import {DataTypesV1 as DataTypes} from "./libraries/DataTypesV1.sol";
-import {MintingLogicV1 as MintingLogic} from "./libraries/MintingLogicV1.sol";
-import {TokenV1 as Token} from "./libraries/TokenV1.sol";
-import {ClockV1 as Clock} from "./libraries/ClockV1.sol";
-import {SettingsV1 as Settings} from "./libraries/SettingsV1.sol";
-import {ErrorsV1 as Errors} from "./libraries/ErrorsV1.sol";
-import {VetGeneratedVthoV1 as VetGeneratedVtho} from "./libraries/VetGeneratedVthoV1.sol";
-import {LevelsV1 as Levels} from "./libraries/LevelsV1.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { ERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import { ERC721EnumerableUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import { ERC721PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721PausableUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import { IStargateNFTV1 as IStargateNFT } from "./IStargateNFTV1.sol";
+import { ITokenAuction } from "../../../interfaces/ITokenAuction.sol";
+import { IStargateDelegationV1 as IStargateDelegation } from "../../StargateDelegation/V1/IStargateDelegationV1.sol";
+import { DataTypesV1 as DataTypes } from "./libraries/DataTypesV1.sol";
+import { MintingLogicV1 as MintingLogic } from "./libraries/MintingLogicV1.sol";
+import { TokenV1 as Token } from "./libraries/TokenV1.sol";
+import { ClockV1 as Clock } from "./libraries/ClockV1.sol";
+import { SettingsV1 as Settings } from "./libraries/SettingsV1.sol";
+import { ErrorsV1 as Errors } from "./libraries/ErrorsV1.sol";
+import { VetGeneratedVthoV1 as VetGeneratedVtho } from "./libraries/VetGeneratedVthoV1.sol";
+import { LevelsV1 as Levels } from "./libraries/LevelsV1.sol";
 
 /// @title StargateNFT
 /// @notice This contract is used to stake VET and receive in return an NFT representing the staking position.
