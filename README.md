@@ -1,3 +1,4 @@
+![Zizmor Checks](https://github.com/vechain/stargate-contracts/actions/workflows/scan-workflows.yaml/badge.svg?branch=main&event=push)
 ## Overview
 
 [![codecov](https://codecov.io/gh/vechain/stargate-contracts/graph/badge.svg?token=3OMYFKUMS9)](https://app.codecov.io/gh/vechain/stargate-contracts)
