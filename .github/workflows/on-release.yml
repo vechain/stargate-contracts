@@ -4,7 +4,6 @@
 name: Contracts Artifacts Release
 permissions:
   contents: read
-  packages: write
 env:
   # Increase Node.js memory to prevent build failures
   NODE_OPTIONS: "--max-old-space-size=4096"
@@ -15,6 +14,9 @@ jobs:
   release-npm-package:
     # if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
