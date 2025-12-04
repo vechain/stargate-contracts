@@ -16,6 +16,7 @@ async function startThorSolo(): Promise<void> {
             stdio: ["inherit", "pipe", "pipe"],
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         let output = "";
         let errorOutput = "";
 

@@ -378,7 +378,7 @@ function copySourceFiles(metadata: any, tempDir: string, contractsBaseDir: strin
 
     console.log("Contract sources found in metadata:");
 
-    for (const [sourcePath, sourceInfo] of Object.entries(metadata.sources)) {
+    for (const [sourcePath] of Object.entries(metadata.sources)) {
         console.log(` - ${sourcePath}`);
 
         // Skip node_modules dependencies - these are handled by Sourcify automatically

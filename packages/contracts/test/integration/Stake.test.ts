@@ -19,6 +19,7 @@ describe("shard-i5: Stargate: Stake NFT", () => {
 
     let mockedVthoToken: MyERC20;
     let protocolStakerContract: IProtocolStaker;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let protocolParamsContract: IProtocolParams;
     let stargateNFTContract: StargateNFT;
     let stargateContract: Stargate;

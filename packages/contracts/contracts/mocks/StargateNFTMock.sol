@@ -60,7 +60,7 @@ contract StargateNFTMock is IERC165, ERC721, ERC721Enumerable, IStargateNFT {
 
     // ---------- Level Functions ---------- //
 
-    function addLevel(DataTypes.LevelAndSupply memory) external {}
+    function addLevel(DataTypes.LevelAndSupply memory, uint256) external {}
 
     function getLevelIds() external pure returns (uint8[] memory) {
         return new uint8[](0);

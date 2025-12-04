@@ -10,6 +10,8 @@ import {
     StargateNFTMock__factory,
     MyERC20,
     MyERC20__factory,
+    NoReceiveMock__factory,
+    NoReceiveMock,
 } from "../../../typechain-types";
 import { TransactionResponse } from "ethers";
 import { expect } from "chai";
@@ -20,6 +22,7 @@ describe("shard-u1: Stargate: Staking", () => {
     let stargateNFTMockContract: StargateNFTMock;
     let protocolStakerMockContract: ProtocolStakerMock;
     let vthoTokenContract: MyERC20;
+    let noReceiveMockContract: NoReceiveMock;
     let deployer: HardhatEthersSigner;
     let user: HardhatEthersSigner;
     let otherAccounts: HardhatEthersSigner[];
@@ -29,14 +32,13 @@ describe("shard-u1: Stargate: Staking", () => {
     const LEVEL_ID = 1;
     const PERIOD_SIZE = 120;
 
-    const VALIDATOR_STATUS_QUEUED = 1;
     const VALIDATOR_STATUS_ACTIVE = 2;
-    const VALIDATOR_STATUS_EXITED = 3;
 
-    const DELEGATION_STATUS_NONE = 0;
     const DELEGATION_STATUS_PENDING = 1;
     const DELEGATION_STATUS_ACTIVE = 2;
     const DELEGATION_STATUS_EXITED = 3;
+
+    const VALIDATOR_STATUS_EXITED = 3;
 
     beforeEach(async () => {
         const config = createLocalConfig();
@@ -51,6 +53,11 @@ describe("shard-u1: Stargate: Staking", () => {
         const protocolStakerMockContractFactory = new ProtocolStakerMock__factory(deployer);
         protocolStakerMockContract = await protocolStakerMockContractFactory.deploy();
         await protocolStakerMockContract.waitForDeployment();
+
+        // deploy no receive mock
+        const noReceiveMockContractFactory = new NoReceiveMock__factory(deployer);
+        noReceiveMockContract = await noReceiveMockContractFactory.deploy();
+        await noReceiveMockContract.waitForDeployment();
 
         // Deploy VTHO token to the energy address
         const vthoTokenContractFactory = new MyERC20__factory(deployer);
@@ -229,6 +236,8 @@ describe("shard-u1: Stargate: Staking", () => {
             2, // firstClaimedPeriod: Delegation started in period 1 so the first claimable is period 2
             11 // lastClaimedPeriod: Delegation exited after period 10 so the last claimable is period 11
         );
+        await expect(tx).not.to.emit(stargateContract, "DelegationExitRequested");
+
         const userBalancePostUnstake = await ethers.provider.getBalance(user.address);
         expect(userBalancePostUnstake).to.be.closeTo(
             userBalanceBeforeStake,
@@ -240,8 +249,26 @@ describe("shard-u1: Stargate: Staking", () => {
             stargateNFTMockContract,
             "ERC721NonexistentToken"
         );
+
+        // assert the token has no delegation
+        expect(await stargateContract.getDelegationStatus(tokenId)).to.equal(0n);
+        // assert that claimable periods is 0
+        expect(await stargateContract.claimableDelegationPeriods(tokenId)).to.deep.equal([0n, 0n]);
+        // assert that locked rewards is 0
+        expect(await stargateContract.lockedRewards(tokenId)).to.equal(0n);
+        // assert that claimable rewards is 0
+        expect(await stargateContract["claimableRewards(uint256)"](tokenId)).to.equal(0n);
     });
     it("should unstake the NFT and withdraw the VET from the protocol when the delegation is pending", async () => {
+        const completedPeriods = 1;
+        const currentPeriod = completedPeriods + 1;
+        // advance 1 period
+        // so the delegation is active
+        tx = await protocolStakerMockContract.helper__setValidationCompletedPeriods(
+            validator.address,
+            completedPeriods
+        );
+        await tx.wait();
         // stake an NFT
         const levelSpec = await stargateNFTMockContract.getLevel(LEVEL_ID);
         const userBalanceBeforeStake = await ethers.provider.getBalance(user.address);
@@ -284,7 +311,7 @@ describe("shard-u1: Stargate: Staking", () => {
 
         await expect(tx)
             .to.emit(stargateContract, "DelegationExitRequested")
-            .withArgs(tokenId, validator.address, 1, await stargateContract.clock());
+            .withArgs(tokenId, validator.address, 1, currentPeriod);
 
         // rewards should be 0 so no event should be emitted
         await expect(tx).to.not.emit(stargateContract, "DelegationRewardsClaimed");
@@ -303,10 +330,117 @@ describe("shard-u1: Stargate: Staking", () => {
             stargateNFTMockContract,
             "ERC721NonexistentToken"
         );
+
+        // assert the token has no delegation
+        expect(await stargateContract.getDelegationStatus(tokenId)).to.equal(0n);
+        // assert that claimable periods is 0
+        expect(await stargateContract.claimableDelegationPeriods(tokenId)).to.deep.equal([0n, 0n]);
+        // assert that locked rewards is 0
+        expect(await stargateContract.lockedRewards(tokenId)).to.equal(0n);
+        // assert that claimable rewards is 0
+        expect(await stargateContract["claimableRewards(uint256)"](tokenId)).to.equal(0n);
+    });
+
+    it("should revert if the max claimable periods is exceeded", async () => {
+        // stake an NFT
+        const levelSpec = await stargateNFTMockContract.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+
+        const tokenId = await stargateNFTMockContract.getCurrentTokenId();
+
+        // delegate the token to the validator
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+
+        // set completed periods to 832
+        tx = await protocolStakerMockContract.helper__setValidationCompletedPeriods(
+            validator.address,
+            900
+        );
+        await tx.wait();
+
+        // request delegation exit
+        tx = await stargateContract.connect(user).requestDelegationExit(tokenId);
+        await tx.wait();
+
+        // advance some periods so is exited
+        tx = await protocolStakerMockContract.helper__setValidationCompletedPeriods(
+            validator.address,
+            901
+        );
+        await tx.wait();
+        // try to unstake the token
+        await expect(stargateContract.connect(user).unstake(tokenId)).to.be.revertedWithCustomError(
+            stargateContract,
+            "MaxClaimablePeriodsExceeded"
+        );
     });
 
     it("should revert if the token does not exist", async () => {
         await expect(stargateContract.connect(user).unstake(1000000)).to.be.reverted;
+    });
+
+    it("should revert if the contract does not have enough VET to transfer to the user", async () => {
+        // stake an NFT
+        const levelSpec = await stargateNFTMockContract.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+
+        const tokenId = await stargateNFTMockContract.getCurrentTokenId();
+
+        // set the contract balance to 0
+        await ethers.provider.send("hardhat_setBalance", [
+            stargateContract.target,
+            "0x00", // 0 ETH in hex
+        ]);
+
+        await expect(stargateContract.connect(user).unstake(tokenId)).to.be.revertedWithCustomError(
+            stargateContract,
+            "InsufficientContractBalance"
+        );
+    });
+    it("should revert if the owner cannot receive VET", async () => {
+        // stake an NFT
+        const levelSpec = await stargateNFTMockContract.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+
+        const tokenId = await stargateNFTMockContract.getCurrentTokenId();
+
+        // transfe the token to a contract that cannot receive VET
+        tx = await stargateNFTMockContract
+            .connect(user)
+            [
+                "safeTransferFrom(address,address,uint256)"
+            ](user.address, noReceiveMockContract.target, tokenId);
+        await tx.wait();
+
+        expect(await stargateNFTMockContract.ownerOf(tokenId)).to.equal(
+            noReceiveMockContract.target
+        );
+
+        // impersonate the no receive mock contract
+        await ethers.provider.send("hardhat_impersonateAccount", [noReceiveMockContract.target]);
+        await ethers.provider.send("hardhat_setBalance", [
+            noReceiveMockContract.target,
+            "0x100000000000000000000", // 100 ETH in hex
+        ]);
+
+        const noReceiveMockSigner = await ethers.getSigner(
+            await noReceiveMockContract.getAddress()
+        );
+
+        // unstake the token
+        await expect(
+            stargateContract.connect(noReceiveMockSigner).unstake(tokenId)
+        ).to.be.revertedWithCustomError(stargateContract, "VetTransferFailed");
     });
 
     it("should revert if the token is under the maturity period", async () => {
@@ -403,5 +537,34 @@ describe("shard-u1: Stargate: Staking", () => {
                 value: ethers.parseEther("5"),
             })
         ).to.not.be.reverted;
+    });
+
+    it("should not revert if by undeflowing when unstaking after a validator exits", async () => {
+        const levelSpec = await stargateNFTMockContract.getLevel(LEVEL_ID);
+        await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        const tokenId = await stargateNFTMockContract.getCurrentTokenId();
+
+        await stargateContract.connect(user).delegate(tokenId, validator.address);
+
+        await protocolStakerMockContract.helper__setValidationCompletedPeriods(
+            validator.address,
+            5
+        );
+
+        await stargateContract.connect(user).requestDelegationExit(tokenId);
+
+        await protocolStakerMockContract.helper__setValidationCompletedPeriods(
+            validator.address,
+            15
+        );
+
+        await protocolStakerMockContract.helper__setValidatorStatus(
+            validator.address,
+            VALIDATOR_STATUS_EXITED
+        );
+
+        await expect(stargateContract.connect(user).unstake(tokenId)).to.not.be.reverted;
     });
 });

@@ -10,9 +10,7 @@ describe("shard-u5: Stargate: Pausing", () => {
     let stargateContract: Stargate;
     let deployer: HardhatEthersSigner;
     let user: HardhatEthersSigner;
-    let otherAccounts: HardhatEthersSigner[];
     let tx: TransactionResponse;
-    let validator: HardhatEthersSigner;
 
     beforeEach(async () => {
         const config = createLocalConfig();
@@ -22,8 +20,6 @@ describe("shard-u5: Stargate: Pausing", () => {
         stargateContract = contracts.stargateContract;
 
         user = contracts.otherAccounts[0];
-        otherAccounts = contracts.otherAccounts;
-        validator = contracts.otherAccounts[1];
 
         await stargateContract.grantRole(await stargateContract.PAUSER_ROLE(), deployer.address);
     });

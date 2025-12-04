@@ -16,6 +16,8 @@ import "../../contracts/interfaces/IProtocolStaker.sol";
 /// Total stake, queued stake, total weight, first active, first queued and next are all set to 0
 /// and not implemented.
 contract ProtocolStakerMock is IProtocolStaker {
+    uint256 public BASE_REWARDS_PER_PERIOD = 0.1 ether;
+    mapping(uint32 => bool) public REWARDS_PER_PERIOD_IS_ZERO;
     enum ValidatorStatus {
         UNKNOWN,
         QUEUED,
@@ -43,7 +45,16 @@ contract ProtocolStakerMock is IProtocolStaker {
     mapping(address => Validation) public validations;
     mapping(uint256 => Delegation) public delegations;
     address private stargate;
+    address private _firstActive = address(1); // initially set to a non-zero address to simulate that the protocol is not in transition period
     uint32 private delegationId;
+
+    function helper__setZeroRewardsPerPeriod(uint32 _stakingPeriod) external {
+        REWARDS_PER_PERIOD_IS_ZERO[_stakingPeriod] = true;
+    }
+
+    function helper__setFirstActive(address newAddress) external {
+        _firstActive = newAddress;
+    }
 
     function helper__setDelegationValidator(uint256 _delegationID, address _validator) external {
         delegations[_delegationID].validator = _validator;
@@ -150,6 +161,14 @@ contract ProtocolStakerMock is IProtocolStaker {
         uint8 _multiplier // (% of msg.value) 100 for x1, 200 for x2, etc. This enforces a maximum of 2.56x multiplier
     ) external payable returns (uint256) {
         delegationId++;
+
+        uint32 startPeriod;
+        if (validations[_validator].status == ValidatorStatus.QUEUED) {
+            startPeriod = validations[_validator].completedPeriods + 1;
+        } else {
+            startPeriod = validations[_validator].completedPeriods + 2;
+        }
+
         delegations[delegationId] = Delegation({
             validator: _validator,
             stake: msg.value,
@@ -159,7 +178,7 @@ contract ProtocolStakerMock is IProtocolStaker {
             // +0 last completed period
             // +1 current period
             // +2 next period
-            startPeriod: validations[_validator].completedPeriods + 2,
+            startPeriod: startPeriod,
             // end period is infinite
             endPeriod: type(uint32).max
         });
@@ -262,7 +281,7 @@ contract ProtocolStakerMock is IProtocolStaker {
      * @dev firstActive returns the head validatorId of the active validators.
      */
     function firstActive() external view returns (address firstActive) {
-        return address(0);
+        return _firstActive;
     }
 
     /**
@@ -289,7 +308,7 @@ contract ProtocolStakerMock is IProtocolStaker {
         if (_stakingPeriod > validations[_validator].completedPeriods + 1) {
             return 0;
         }
-        return 0.1 ether;
+        return REWARDS_PER_PERIOD_IS_ZERO[_stakingPeriod] ? 0 : BASE_REWARDS_PER_PERIOD;
     }
 
     /**

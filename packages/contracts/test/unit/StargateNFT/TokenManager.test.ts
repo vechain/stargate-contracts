@@ -180,6 +180,38 @@ describe("shard-u105: StargateNFT: Token Manager", () => {
             ).to.be.revertedWithCustomError(errorsInterface, "NoTokenManager");
         });
 
+        it("should remove the token manager when transferring the token", async () => {
+            const levelId = 1;
+            tx = await stargateNFTContract.mint(levelId, user.address);
+            await tx.wait();
+
+            const tokenId = await stargateNFTContract.getCurrentTokenId();
+            log("✅ Minted token id: ", tokenId);
+
+            // add a token manager
+            tx = await stargateNFTContract.connect(user).addTokenManager(manager.address, tokenId);
+            await tx.wait();
+            log("✅ Added token manager: ", manager.address);
+            await expect(tx)
+                .to.emit(stargateNFTContract, "TokenManagerAdded")
+                .withArgs(tokenId, manager.address);
+
+            // transfer the token to another address
+            tx = await stargateNFTContract
+                .connect(user)
+                .transferFrom(user.address, otherUser.address, tokenId);
+            await tx.wait();
+            log("✅ Transferred token to: ", otherUser.address);
+            await expect(tx)
+                .to.emit(stargateNFTContract, "Transfer")
+                .withArgs(user.address, otherUser.address, tokenId);
+
+            // check that the token manager has been removed
+            expect(await stargateNFTContract.getTokenManager(tokenId)).to.equal(otherUser.address);
+            expect(await stargateNFTContract.isTokenManager(manager.address, tokenId)).to.be.false;
+            expect(await stargateNFTContract.isManagedByOwner(tokenId)).to.be.true;
+        });
+
         it("should be able to remove the token manager if the token is managed by the caller", async () => {
             const levelId = 1;
             tx = await stargateNFTContract.mint(levelId, user.address);
@@ -205,6 +237,7 @@ describe("shard-u105: StargateNFT: Token Manager", () => {
             expect(await stargateNFTContract.getTokenManager(tokenId)).to.equal(user.address);
             expect(await stargateNFTContract.isTokenManager(manager.address, tokenId)).to.be.false;
             expect(await stargateNFTContract.isManagedByOwner(tokenId)).to.be.true;
+            expect(await stargateNFTContract.idsManagedBy(manager.address)).to.deep.equal([]);
         });
 
         it("should be able to remove a token manager if the token is owned by the caller", async () => {
@@ -232,6 +265,7 @@ describe("shard-u105: StargateNFT: Token Manager", () => {
             expect(await stargateNFTContract.getTokenManager(tokenId)).to.equal(user.address);
             expect(await stargateNFTContract.isTokenManager(manager.address, tokenId)).to.be.false;
             expect(await stargateNFTContract.isManagedByOwner(tokenId)).to.be.true;
+            expect(await stargateNFTContract.idsManagedBy(manager.address)).to.deep.equal([]);
         });
     });
 
@@ -376,6 +410,18 @@ describe("shard-u105: StargateNFT: Token Manager", () => {
             ]);
         });
 
+        it("should revert when calling tokensOverview with a zero address", async () => {
+            await expect(
+                stargateNFTContract.tokensOverview(ZeroAddress)
+            ).to.be.revertedWithCustomError(stargateNFTContract, "AddressCannotBeZero");
+        });
+
+        it("should revert when calling idsManagedBy with a zero address", async () => {
+            await expect(
+                stargateNFTContract.idsManagedBy(ZeroAddress)
+            ).to.be.revertedWithCustomError(stargateNFTContract, "AddressCannotBeZero");
+        });
+
         it("should return the token managed by the address", async () => {
             const levelId = 1;
             tx = await stargateNFTContract.mint(levelId, user.address);
@@ -471,6 +517,13 @@ describe("shard-u105: StargateNFT: Token Manager", () => {
             log("✅ Minted token id: ", tokenId);
 
             expect(await stargateNFTContract.isManagedByOwner(tokenId)).to.be.true;
+        });
+
+        it("should revert when calling isManagedByOwner with a token that does not exist", async () => {
+            await expect(stargateNFTContract.isManagedByOwner(1)).to.be.revertedWithCustomError(
+                stargateNFTContract,
+                "ERC721NonexistentToken"
+            );
         });
     });
 });

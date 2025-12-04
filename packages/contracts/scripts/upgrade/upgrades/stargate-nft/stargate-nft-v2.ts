@@ -1,14 +1,12 @@
 import { ethers, network } from "hardhat";
 import { getConfig } from "@repo/config";
 import { EnvConfig, getContractsConfig } from "@repo/config/contracts";
-import { deployStargateNFTLibraries } from "../../../deploy/libraries";
 import { upgradeProxy } from "../../../helpers";
 import {
     ClockV2,
     LevelsV2,
     MintingLogicV2,
     SettingsV2,
-    StargateNFT,
     StargateNFTV2,
     TokenV2,
     VetGeneratedVthoV2,

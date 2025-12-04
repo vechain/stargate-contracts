@@ -98,12 +98,6 @@ interface IStargateNFT is IERC165, IERC721, IERC721Enumerable {
     event BaseURIUpdated(string oldBaseURI, string newBaseURI);
 
     /**
-     * @notice Emitted when a whitelist entry is removed
-     * @param owner The address of the whitelist entry
-     */
-    event WhitelistEntryRemoved(address owner);
-
-    /**
      * @notice Emitted when a token manager is added to a token
      * @param tokenId The ID of the token
      * @param manager The address of the manager
@@ -181,12 +175,17 @@ interface IStargateNFT is IERC165, IERC721, IERC721Enumerable {
 
     /// @notice Adds a new token level
     /// @param _levelAndSupply - The level and supply to add, see {DataTypes.LevelAndSupply}
+    /// @param _boostPricePerBlock - The boost price per block for the level
     /// @dev Only the LEVEL_OPERATOR_ROLE can call this function
     /// Check the {Levels.addLevel} library function for more details
     /// Emits a {IStargateNFT.LevelUpdated} event
     /// Emits a {IStargateNFT.LevelCirculatingSupplyUpdated} event
     /// Emits a {IStargateNFT.LevelCapUpdated} event
-    function addLevel(DataTypes.LevelAndSupply memory _levelAndSupply) external;
+    /// Emits a {IStargateNFT.LevelBoostPricePerBlockUpdated} event
+    function addLevel(
+        DataTypes.LevelAndSupply memory _levelAndSupply,
+        uint256 _boostPricePerBlock
+    ) external;
 
     /// @notice Returns a list of all token level spec IDs
     /// @return levelIds - The list of token level spec IDs
@@ -245,16 +244,25 @@ interface IStargateNFT is IERC165, IERC721, IERC721Enumerable {
     function getTokenLevel(uint256 _tokenId) external view returns (uint8);
 
     /// @notice Returns the tokens owned by an address
+    /// @dev WARNING: This function contains external calls in a loop.
+    ///      This pattern is necessary due to ERC721Enumerable's token iteration model.
+    ///      This function may run out of gas if the owner has a lot of tokens.
     /// @param _owner The address to get tokens for
     /// @return tokens An array of tokens owned by the address
     function tokensOwnedBy(address _owner) external view returns (DataTypes.Token[] memory);
 
     /// @notice Returns the total VET staked by an address
+    /// @dev WARNING: This function contains external calls in a loop.
+    ///      This pattern is necessary due to ERC721Enumerable's token iteration model.
+    ///      This function may run out of gas if the owner has a lot of tokens.
     /// @param _owner The address to get total VET staked for
     /// @return totalVetStaked The total VET staked by the address
     function ownerTotalVetStaked(address _owner) external view returns (uint256);
 
     /// @notice Returns a list of token IDs for a given owner
+    /// @dev WARNING: This function contains external calls in a loop.
+    ///      This pattern is necessary due to ERC721Enumerable's token iteration model.
+    ///      This function may run out of gas if the owner has a lot of tokens.
     /// @param _owner The address of the owner to get token IDs for
     /// @return tokenIds The list of token IDs
     function idsOwnedBy(address _owner) external view returns (uint256[] memory);
@@ -329,6 +337,9 @@ interface IStargateNFT is IERC165, IERC721, IERC721Enumerable {
     /// 1) Token ids managed by the user
     /// 2) Token ids owned by the user and not managed by someone else
     /// Token ids owned by the user, but managed by others, won't be returned
+    /// @dev WARNING: This function contains external calls in a loop.
+    ///      This pattern is necessary due to ERC721Enumerable's token iteration model.
+    ///      This function may run out of gas if the user has a lot of tokens.
     /// @param _user The address of the user to get the tokens for
     /// @return tokenIds The list of token ids managed by the user
     function idsManagedBy(address _user) external view returns (uint256[] memory);
@@ -337,6 +348,9 @@ interface IStargateNFT is IERC165, IERC721, IERC721Enumerable {
     /// 1) Tokens managed by the user
     /// 2) Tokens owned by the user and not managed by someone else
     /// Tokens owned by the user, but managed by others, won't be returned
+    /// @dev WARNING: This function contains external calls in a loop.
+    ///      This pattern is necessary due to ERC721Enumerable's token iteration model.
+    ///      This function may run out of gas if the user has a lot of tokens.
     /// @param _user The address of the user to get the tokens for
     /// @return tokens The list of tokens managed by the user
     function tokensManagedBy(address _user) external view returns (DataTypes.Token[] memory);
@@ -358,6 +372,9 @@ interface IStargateNFT is IERC165, IERC721, IERC721Enumerable {
     /// - Tokens owned by the user and managed by the user
     /// - Tokens owned by the user and not managed by the user
     /// - Tokens managed by the user and not owned by the user
+    /// @dev WARNING: This function contains external calls in a loop.
+    ///      This pattern is necessary due to ERC721Enumerable's token iteration model.
+    ///      This function may run out of gas if the user has a lot of tokens.
     /// @param _user The address of the user to get the overview of the tokens
     /// @return DataTypes.TokenOverview[] The overview of the tokens related to the user
     function tokensOverview(address _user) external view returns (DataTypes.TokenOverview[] memory);
@@ -435,6 +452,9 @@ interface IStargateNFT is IERC165, IERC721, IERC721Enumerable {
     function xTokensCount() external view returns (uint208);
 
     /// @notice Checks if an owner owns an X token
+    /// @dev WARNING: This function contains external calls in a loop.
+    ///      This pattern is necessary due to ERC721Enumerable's token iteration model.
+    ///      This function may run out of gas if the owner has a lot of tokens.
     /// @param _owner The address of the owner to check
     /// @return True if the owner owns an X token, false otherwise
     function ownsXToken(address _owner) external view returns (bool);
@@ -461,10 +481,10 @@ interface IStargateNFT is IERC165, IERC721, IERC721Enumerable {
     /// This function is called by the admin after the upgrade to V3 and the
     /// Stargate variable is set to the correct value
     /// @dev Only the DEFAULT_ADMIN_ROLE can call this function
-    /// @dev Emits a {IStargateNFT.VetTransferFailed} event
+    /// @dev Reverts with {IStargateNFT.VetTransferFailed} if the transfer fails
     function transferBalance(uint256 amount) external;
 
-    /// @notice Migrate a token manager to the StargateNFT contract, this function is only callable by the DEFAULT_ADMIN_ROLE
+    /// @notice Migrate a token manager to the StargateNFT contract, this function is only callable by the TOKEN_MANAGER_MIGRATOR_ROLE
     /// so we can migrate the storage from NodeManagementV3 to StargateNFT, after the migration we can remove this function
     /// @param _tokenId The ID of the token to migrate
     /// @param _manager The address of the manager to migrate

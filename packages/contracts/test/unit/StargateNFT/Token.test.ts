@@ -105,6 +105,11 @@ describe("shard-u107: StargateNFT: Token", () => {
         // migrate legacy token
         tx = await stargateNFTContract.migrate(LEGACY_TOKEN_ID);
         await tx.wait();
+        // mint a non-X token
+        tx = await stargateNFTContract.mint(1, user.address);
+        await tx.wait();
+        const tokenId = await stargateNFTContract.getCurrentTokenId();
+        log("✅ Minted token id: ", tokenId);
         const xTokensCountAfterMint = await stargateNFTContract.xTokensCount();
         log("👀 X tokens count after mint: ", xTokensCountAfterMint);
         expect(xTokensCountAfterMint).to.equal(1);
@@ -260,5 +265,11 @@ describe("shard-u107: StargateNFT: Token", () => {
         expect(token.levelId).to.equal(levelSpec.id);
         expect(token.vetAmountStaked).to.equal(levelSpec.vetAmountRequiredToStake);
         expect(token.mintedAtBlock).to.equal(await stargateNFTContract.clock());
+    });
+    it("should revert when calling getToken with a token that does not exist", async () => {
+        await expect(stargateNFTContract.getToken(1)).to.be.revertedWithCustomError(
+            stargateNFTContract,
+            "ERC721NonexistentToken"
+        );
     });
 });

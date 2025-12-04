@@ -1,27 +1,16 @@
 import { expect } from "chai";
-import {
-    Errors,
-    Stargate,
-    StargateNFT,
-    TokenAuctionMock,
-    TokenAuctionMock__factory,
-} from "../../../typechain-types";
+import { StargateNFT, TokenAuctionMock, TokenAuctionMock__factory } from "../../../typechain-types";
 import { getOrDeployContracts } from "../../helpers/deploy";
 import { createLocalConfig } from "@repo/config/contracts/envs/local";
 import { ethers } from "hardhat";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { getStargateNFTErrorsInterface } from "../../helpers";
 
 describe("shard-u109: StargateNFT: Getters", () => {
     const config = createLocalConfig();
 
     let stargateNFTContract: StargateNFT;
     let deployer: HardhatEthersSigner;
-    let user: HardhatEthersSigner;
-    let otherAccounts: HardhatEthersSigner[];
-    let stargateMockCaller: HardhatEthersSigner;
     let legacyNodesMock: TokenAuctionMock;
-    let errorsInterface: Errors;
     beforeEach(async () => {
         [deployer] = await ethers.getSigners();
 
@@ -42,12 +31,8 @@ describe("shard-u109: StargateNFT: Getters", () => {
             config,
         });
 
-        otherAccounts = contracts.otherAccounts;
         deployer = contracts.deployer;
-        stargateMockCaller = deployer;
-        user = otherAccounts[0];
         stargateNFTContract = contracts.stargateNFTContract;
-        errorsInterface = await getStargateNFTErrorsInterface();
     });
 
     it("should revert when trying to call tokenURI with a non-existing token", async () => {
@@ -92,5 +77,25 @@ describe("shard-u109: StargateNFT: Getters", () => {
     it("should return the current version", async () => {
         const currentVersion = await stargateNFTContract.version();
         expect(currentVersion).to.equal(3);
+    });
+
+    it("should return the list of levels", async () => {
+        const levels = await stargateNFTContract.getLevels();
+        for (let i = 0; i < levels.length; i++) {
+            const contractLevel = levels[i];
+            const configLevel = config.TOKEN_LEVELS.find(
+                (level) => level.level.id === Number(contractLevel.id)
+            );
+            expect(configLevel).to.not.be.undefined;
+            expect(contractLevel.name).to.equal(configLevel?.level.name);
+            expect(contractLevel.isX).to.equal(configLevel?.level.isX);
+            expect(contractLevel.maturityBlocks).to.equal(configLevel?.level.maturityBlocks);
+            expect(contractLevel.scaledRewardFactor).to.equal(
+                configLevel?.level.scaledRewardFactor
+            );
+            expect(contractLevel.vetAmountRequiredToStake).to.equal(
+                configLevel?.level.vetAmountRequiredToStake
+            );
+        }
     });
 });

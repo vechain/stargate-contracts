@@ -10,12 +10,11 @@ import {
     TokenAuctionMock,
     TokenAuctionMock__factory,
 } from "../../../typechain-types";
-import { TransactionResponse, ZeroAddress } from "ethers";
+import { TransactionResponse } from "ethers";
 
 describe("shard-u104: StargateNFT: Migrate", () => {
     const config = createLocalConfig();
 
-    let otherAccounts: HardhatEthersSigner[];
     let stargateNFTContract: StargateNFT;
     let legacyNodesMock: TokenAuctionMock;
 
@@ -54,7 +53,6 @@ describe("shard-u104: StargateNFT: Migrate", () => {
             config,
         });
 
-        otherAccounts = contracts.otherAccounts;
         stargateNFTContract = contracts.stargateNFTContract;
         stargateContract = contracts.stargateContract;
         errorsInterface = await getStargateNFTErrorsInterface();
@@ -118,7 +116,9 @@ describe("shard-u104: StargateNFT: Migrate", () => {
         });
         it("should be able to migrate the token", async () => {
             tx = await stargateNFTContract.connect(deployer).migrate(TOKEN_ID);
-            await tx.wait();
+            await expect(tx)
+                .to.emit(stargateNFTContract, "TokenMinted")
+                .withArgs(user.address, LEVEL_ID, true, TOKEN_ID, "60000000000000000000");
             log("✅ Migrated token");
             expect(await stargateNFTContract.ownerOf(TOKEN_ID)).to.equal(user.address);
             expect(await stargateNFTContract.getTokenLevel(TOKEN_ID)).to.equal(LEVEL_ID);

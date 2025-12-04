@@ -96,6 +96,7 @@ describe("shard-i1: Protocol Contracts Getters", () => {
     });
 
     it("should be able to get status details for the first active validator", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const [endorser, stake, weight, queuedStake, status, offlineBlock] =
             await protocolStakerContract.getValidation(validatorAddress);
 
@@ -120,6 +121,7 @@ describe("shard-i1: Protocol Contracts Getters", () => {
 
         // fast-forward to the next period
         const periodsToComplete = 0; // Only fast-forward to the next period
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const blocksMined = await fastForwardValidatorPeriods(
             Number(period),
             Number(startBlock),

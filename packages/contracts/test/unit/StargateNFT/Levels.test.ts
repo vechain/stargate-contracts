@@ -13,6 +13,8 @@ describe("shard-u101: StargateNFT: Levels", () => {
     let stargateContract: Stargate;
     let errorsInterface: Errors;
 
+    const BOOST_PRICE_PER_BLOCK = ethers.parseEther("1");
+
     beforeEach(async () => {
         const contracts = await getOrDeployContracts({
             forceDeploy: true,
@@ -187,18 +189,21 @@ describe("shard-u101: StargateNFT: Levels", () => {
             ).to.be.false;
 
             await expect(
-                stargateNFTContract.connect(unauthorisedUser).addLevel({
-                    level: {
-                        id: 25, // This id does not matter since it will be replaced by the real one
-                        name: "My New Level",
-                        isX: false,
-                        vetAmountRequiredToStake: ethers.parseEther("1000000"),
-                        scaledRewardFactor: 150,
-                        maturityBlocks: 30,
+                stargateNFTContract.connect(unauthorisedUser).addLevel(
+                    {
+                        level: {
+                            id: 25, // This id does not matter since it will be replaced by the real one
+                            name: "My New Level",
+                            isX: false,
+                            vetAmountRequiredToStake: ethers.parseEther("1000000"),
+                            scaledRewardFactor: 150,
+                            maturityBlocks: 30,
+                        },
+                        cap: 872,
+                        circulatingSupply: 0,
                     },
-                    cap: 872,
-                    circulatingSupply: 0,
-                })
+                    BOOST_PRICE_PER_BLOCK
+                )
             ).to.be.revertedWithCustomError(
                 stargateNFTContract,
                 "AccessControlUnauthorizedAccount"
@@ -233,6 +238,7 @@ describe("shard-u101: StargateNFT: Levels", () => {
                         cap: 1000,
                         circulatingSupply: 0,
                     },
+                    boostPricePerBlock: BOOST_PRICE_PER_BLOCK,
                     expectedError: "StringCannotBeEmpty",
                 },
                 {
@@ -249,6 +255,7 @@ describe("shard-u101: StargateNFT: Levels", () => {
                         cap: 1000,
                         circulatingSupply: 0,
                     },
+                    boostPricePerBlock: BOOST_PRICE_PER_BLOCK,
                     expectedError: "ValueCannotBeZero",
                 },
                 {
@@ -265,13 +272,16 @@ describe("shard-u101: StargateNFT: Levels", () => {
                         cap: 100,
                         circulatingSupply: 101,
                     },
+                    boostPricePerBlock: BOOST_PRICE_PER_BLOCK,
                     expectedError: "CirculatingSupplyGreaterThanCap",
                 },
             ];
 
             for (const testCase of testCases) {
                 await expect(
-                    stargateNFTContract.connect(levelOperator).addLevel(testCase.input)
+                    stargateNFTContract
+                        .connect(levelOperator)
+                        .addLevel(testCase.input, testCase.boostPricePerBlock)
                 ).to.be.revertedWithCustomError(errorsInterface, testCase.expectedError);
 
                 expect(await stargateNFTContract.getLevelIds()).to.deep.equal(currentLevelIds);
@@ -301,7 +311,7 @@ describe("shard-u101: StargateNFT: Levels", () => {
                     maturityBlocks: 30,
                 },
                 cap: 872,
-                circulatingSupply: 0,
+                circulatingSupply: 100,
             };
 
             const expectedLevelId = currentLevelIds[currentLevelIds.length - 1] + 1n;
@@ -309,7 +319,7 @@ describe("shard-u101: StargateNFT: Levels", () => {
             // Add new level
             const addLevelTx = await stargateNFTContract
                 .connect(levelOperator)
-                .addLevel(newLevelAndSupply);
+                .addLevel(newLevelAndSupply, BOOST_PRICE_PER_BLOCK);
             await addLevelTx.wait();
 
             // Assert levels are sequentially numbered
@@ -334,6 +344,11 @@ describe("shard-u101: StargateNFT: Levels", () => {
             const newLevelSupply = await stargateNFTContract.getLevelSupply(expectedLevelId);
             expect(newLevelSupply.cap).to.equal(newLevelAndSupply.cap);
             expect(newLevelSupply.circulating).to.equal(newLevelAndSupply.circulatingSupply);
+
+            // Assert boost price per block is correct
+            const boostPricePerBlock =
+                await stargateNFTContract.boostPricePerBlock(expectedLevelId);
+            expect(boostPricePerBlock).to.equal(BOOST_PRICE_PER_BLOCK);
         });
     });
 });

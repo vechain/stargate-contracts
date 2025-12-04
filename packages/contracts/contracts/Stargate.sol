@@ -261,23 +261,34 @@ contract Stargate is
         (, , , , uint8 currentValidatorStatus, ) = $.protocolStakerContract.getValidation(
             delegation.validator
         );
+        // get the completed periods of the previous validator
+        (, , , uint32 previousValidationCompletedPeriods) = $
+            .protocolStakerContract
+            .getValidationPeriodDetails(delegation.validator);
+        (, , , , uint8 previousValidationStatus, ) = $.protocolStakerContract.getValidation(
+            delegation.validator
+        );
+        bool isInTransitionPeriod = _isInTransitionPeriod($);
         // if the delegation is pending or the validator is exited or unknown
+
+        // if the validator status is exited and the user has not
+        // requested to exit the delegation or the delegation
+        // status is pending
         // decrease the effective stake of the previous validator
         if (
-            currentValidatorStatus == VALIDATOR_STATUS_EXITED ||
-            delegation.status == DelegationStatus.PENDING
+            (currentValidatorStatus == VALIDATOR_STATUS_EXITED &&
+                !_hasRequestedExit($, _tokenId)) || delegation.status == DelegationStatus.PENDING
         ) {
-            // get the completed periods of the previous validator
-            (, , , uint32 oldCompletedPeriods) = $
-                .protocolStakerContract
-                .getValidationPeriodDetails(delegation.validator);
-
             // decrease the effective stake of the previous validator
             _updatePeriodEffectiveStake(
                 $,
                 delegation.validator,
                 _tokenId,
-                oldCompletedPeriods + 2,
+                // if the protocol is in transition period, the current period is the
+                // number of completed periods, so we add 1 instead of 2
+                isInTransitionPeriod || previousValidationStatus == VALIDATOR_STATUS_QUEUED
+                    ? previousValidationCompletedPeriods + 1
+                    : previousValidationCompletedPeriods + 2,
                 false // decrease
             );
         }
@@ -289,7 +300,9 @@ contract Stargate is
                 _tokenId,
                 delegation.validator,
                 delegation.delegationId,
-                Clock.clock()
+                isInTransitionPeriod || previousValidationStatus == VALIDATOR_STATUS_QUEUED
+                    ? previousValidationCompletedPeriods
+                    : previousValidationCompletedPeriods + 1
             );
         }
 
@@ -369,6 +382,9 @@ contract Stargate is
 
         uint256 currentDelegationId = $.delegationIdByTokenId[_tokenId];
 
+        // check if the protocol is in transition period
+        bool isInTransitionPeriod = _isInTransitionPeriod($);
+
         // If the token was previously exited or pending it means that the VET is still held in the protocol,
         // so we need to withdraw it and deposit again for the new delegation
         if (status == DelegationStatus.EXITED || status == DelegationStatus.PENDING) {
@@ -393,22 +409,29 @@ contract Stargate is
             (, , , , uint8 currentValidatorStatus, ) = $.protocolStakerContract.getValidation(
                 currentValidator
             );
+
+            // get the completed periods of the previous validator
+            (, , , uint32 oldCompletedPeriods) = $
+                .protocolStakerContract
+                .getValidationPeriodDetails(currentValidator);
+
             // if the delegation is pending or the validator is exited or unknown
+            // if the validator status is exited and the user has not
+            // requested to exit the delegation or the delegation
+            // status is pending
             // decrease the effective stake of the previous validator
             if (
-                currentValidatorStatus == VALIDATOR_STATUS_EXITED ||
-                status == DelegationStatus.PENDING
+                (currentValidatorStatus == VALIDATOR_STATUS_EXITED &&
+                    !_hasRequestedExit($, _tokenId)) || status == DelegationStatus.PENDING
             ) {
-                // get the completed periods of the previous validator
-                (, , , uint32 oldCompletedPeriods) = $
-                    .protocolStakerContract
-                    .getValidationPeriodDetails(currentValidator);
                 // decrease the effective stake of the previous validator
                 _updatePeriodEffectiveStake(
                     $,
                     currentValidator,
                     _tokenId,
-                    oldCompletedPeriods + 2,
+                    (isInTransitionPeriod || currentValidatorStatus == VALIDATOR_STATUS_QUEUED)
+                        ? oldCompletedPeriods + 1
+                        : oldCompletedPeriods + 2,
                     false // decrease
                 );
             }
@@ -421,7 +444,9 @@ contract Stargate is
                     _tokenId,
                     currentValidator,
                     currentDelegationId,
-                    Clock.clock()
+                    isInTransitionPeriod || currentValidatorStatus == VALIDATOR_STATUS_QUEUED
+                        ? oldCompletedPeriods
+                        : oldCompletedPeriods + 1
                 );
             }
         }
@@ -434,6 +459,7 @@ contract Stargate is
                 // then call the delegate() function again.
                 revert MaxClaimablePeriodsExceeded();
             }
+
             // claim pending rewards
             _claimRewards($, _tokenId);
         }
@@ -451,14 +477,20 @@ contract Stargate is
             _validator
         );
 
+        // if the protocol is in transition period, the current period is the
+        // number of completed periods, so we add 1 instead of 2
+        uint32 currentPeriod = isInTransitionPeriod || validatorStatus == VALIDATOR_STATUS_QUEUED
+            ? completedPeriods
+            : completedPeriods + 1;
+
         // update the mappings regarding the delegation
         $.delegationIdByTokenId[_tokenId] = delegationId;
         // update the last claimed period to the current period of the validator
         // (aka: claimable periods will be from the next period)
-        $.lastClaimedPeriod[_tokenId] = completedPeriods + 1; // current period
+        $.lastClaimedPeriod[_tokenId] = currentPeriod; // current period
 
         // Increase the delegators effective stake in the next period
-        _updatePeriodEffectiveStake($, _validator, _tokenId, completedPeriods + 2, true);
+        _updatePeriodEffectiveStake($, _validator, _tokenId, currentPeriod + 1, true);
 
         emit DelegationInitiated(
             _tokenId,
@@ -530,7 +562,6 @@ contract Stargate is
         }
 
         Delegation memory delegation = _getDelegationDetails($, _tokenId);
-
         if (delegation.status == DelegationStatus.PENDING) {
             // if the delegation is pending, we can exit it immediately
             // by withdrawing the VET from the protocol
@@ -562,12 +593,29 @@ contract Stargate is
         (, , , uint32 completedPeriods) = $.protocolStakerContract.getValidationPeriodDetails(
             delegation.validator
         );
-        (, uint32 exitBlock) = $.protocolStakerContract.getDelegationPeriodDetails(delegationId);
+        (, uint32 endPeriod) = $.protocolStakerContract.getDelegationPeriodDetails(delegationId);
 
+        (, , , , uint8 validatorStatus, ) = $.protocolStakerContract.getValidation(
+            delegation.validator
+        );
         // decrease the effective stake
-        _updatePeriodEffectiveStake($, delegation.validator, _tokenId, completedPeriods + 2, false);
+        _updatePeriodEffectiveStake(
+            $,
+            delegation.validator,
+            _tokenId,
+            // if the protocol is in transition period, the current period is the
+            // number of completed periods, so we add 1 instead of 2
+            _isInTransitionPeriod($) || validatorStatus == VALIDATOR_STATUS_QUEUED
+                ? completedPeriods + 1
+                : completedPeriods + 2,
+            false
+        );
 
-        emit DelegationExitRequested(_tokenId, delegation.validator, delegationId, exitBlock);
+        emit DelegationExitRequested(_tokenId, delegation.validator, delegationId, endPeriod);
+    }
+
+    function _isInTransitionPeriod(StargateStorage storage $) private view returns (bool) {
+        return $.protocolStakerContract.firstActive() == address(0);
     }
 
     /// @inheritdoc IStargate
@@ -694,7 +742,13 @@ contract Stargate is
     /// @inheritdoc IStargate
     function hasRequestedExit(uint256 _tokenId) external view returns (bool) {
         StargateStorage storage $ = _getStargateStorage();
+        return _hasRequestedExit($, _tokenId);
+    }
 
+    function _hasRequestedExit(
+        StargateStorage storage $,
+        uint256 _tokenId
+    ) private view returns (bool) {
         // get end period of the delegation
         uint256 delegationId = $.delegationIdByTokenId[_tokenId];
 
@@ -705,10 +759,11 @@ contract Stargate is
 
         // Fetch only the period details (single external call)
         (, uint32 endPeriod) = $.protocolStakerContract.getDelegationPeriodDetails(delegationId);
+        DelegationStatus status = _getDelegationStatus($, _tokenId);
 
         // endPeriod is set to type(uint32).max when delegation is created
         // It changes to a specific period number when exit is requested
-        return endPeriod != type(uint32).max;
+        return endPeriod != type(uint32).max && status != DelegationStatus.EXITED;
     }
 
     /// @inheritdoc IStargate
@@ -755,13 +810,13 @@ contract Stargate is
         }
 
         uint256 claimableAmount = _claimableRewards($, _tokenId, 0);
+        $.lastClaimedPeriod[_tokenId] = lastClaimablePeriod;
+
         if (claimableAmount == 0) {
             return;
         }
 
         address tokenOwner = $.stargateNFTContract.ownerOf(_tokenId);
-
-        $.lastClaimedPeriod[_tokenId] = lastClaimablePeriod;
 
         VTHO_TOKEN.safeTransfer(tokenOwner, claimableAmount);
 
@@ -902,8 +957,16 @@ contract Stargate is
         // the current period is the one that is not completed yet
         uint32 currentValidatorPeriod = completedPeriods + 1;
 
+        uint32 lastClaimedPeriod = $.lastClaimedPeriod[_tokenId];
+
+        // if the last claimed period is the same as the end period
+        // means this delegation has already been claimed so we return 0,0
+        if (endPeriod <= lastClaimedPeriod) {
+            return (0, 0);
+        }
+
         // next claimable period is the last claimed period + 1
-        uint32 nextClaimablePeriod = $.lastClaimedPeriod[_tokenId] + 1;
+        uint32 nextClaimablePeriod = lastClaimedPeriod + 1;
         // if the next claimable period is before the start period, set it to the start period
         if (nextClaimablePeriod < startPeriod) {
             nextClaimablePeriod = startPeriod;
@@ -916,7 +979,7 @@ contract Stargate is
         if (
             endPeriod != type(uint32).max &&
             endPeriod < currentValidatorPeriod &&
-            endPeriod > nextClaimablePeriod
+            endPeriod >= nextClaimablePeriod
         ) {
             return (nextClaimablePeriod, endPeriod);
         }
@@ -948,6 +1011,7 @@ contract Stargate is
             revert InvalidMaxClaimablePeriods();
         }
         _getStargateStorage().maxClaimablePeriods = _maxClaimablePeriods;
+        emit MaxClaimablePeriodsSet(_maxClaimablePeriods);
     }
 
     /// @notice Returns true if the token exceeds the max claimable periods
@@ -1003,10 +1067,16 @@ contract Stargate is
         // get the current effective stake
         uint256 currentValue = $.delegatorsEffectiveStake[_validator].upperLookup(_period);
 
-        // calculate the updated effective stake
-        uint256 updatedValue = _isIncrease
-            ? currentValue + effectiveStake
-            : currentValue - effectiveStake;
+        uint256 updatedValue;
+
+        if (_isIncrease) {
+            // if is increasing, add the effective stake to the current value
+            updatedValue = currentValue + effectiveStake;
+        } else {
+            // if the current value is greater than the effective stake, subtract the effective stake
+            // otherwise, set the updated value to 0
+            updatedValue = currentValue > effectiveStake ? currentValue - effectiveStake : 0;
+        }
 
         // push the updated effective stake
         $.delegatorsEffectiveStake[_validator].push(_period, SafeCast.toUint224(updatedValue));

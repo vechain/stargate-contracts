@@ -11,7 +11,7 @@ import { ABIContract, Address, Clause, Mnemonic } from "@vechain/sdk-core";
 import path from "path";
 import * as fs from "fs";
 import { log, writeToFile } from "../helpers";
-import { StargateDelegation__factory, StargateNFTV2__factory } from "../../typechain-types";
+import { StargateNFTV2__factory } from "../../typechain-types";
 import { BaseRewardsData, BaseRewardsExecutionReport } from "./types";
 
 // 80 is the max number of clauses that can be executed in a single transaction

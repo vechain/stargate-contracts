@@ -117,8 +117,16 @@ async function writeToFile(
     environment: string,
     prefix?: string
 ) {
+    const outputDir = prefix ? path.join(dirName, prefix) : dirName;
+
+    // Ensure the output directory exists
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const outputPath = path.join(outputDir, `${outputFileName}-${environment}.json`);
+
     // Delete existing file if it exists
-    const outputPath = path.join(dirName, `${prefix}/${outputFileName}-${environment}.json`);
     if (fs.existsSync(outputPath)) {
         fs.unlinkSync(outputPath);
         log(`Deleted existing file: ${outputPath}`);

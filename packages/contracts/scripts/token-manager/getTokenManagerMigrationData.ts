@@ -48,7 +48,7 @@ async function main() {
         if (!tokenExists) {
             continue;
         }
-        const owner = await stargateNFTContract.getTokenManager(tokenId);
+        const owner = await stargateNFTContract.ownerOf(tokenId);
         const nodeManager = await nodeManagementV3Contract.getNodeManager(tokenId);
         if (owner === nodeManager) {
             continue;

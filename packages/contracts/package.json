@@ -1,10 +1,17 @@
 {
   "name": "@repo/contracts",
   "version": "0.0.1",
-  "main": "index.ts",
-  "types": "index.ts",
+  "main": "index.js",
+  "module": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "dist",
+    "typechain-types",
+    "artifacts"
+  ],
   "license": "MIT",
   "scripts": {
+    "build": "npx hardhat compile && tsc -b ./tsconfig.esm.json ./tsconfig.cjs.json",
     "test:thor-solo": "hardhat test --network vechain_solo test/integration/*.test.ts",
     "test:hardhat": "hardhat test --network hardhat test/unit/**/*.test.ts",
     "test:coverage:solidity": "hardhat coverage --testfiles 'test/unit/**/*.test.ts'",
@@ -35,11 +42,10 @@
     "mine-blocks": "npx hardhat run scripts/thor-solo/mineBlocks.ts --network vechain_solo",
     "fast-forward-periods": "npx hardhat run scripts/thor-solo/fastForwardPeriods.ts --network vechain_solo",
     "clean": "rm -rf dist artifacts typechain-types cache node_modules",
-    "format": "prettier --check \"**/*.{ts,js,sol,md}\"",
+    "format": "prettier --write \"**/*.{ts,js,sol,md}\"",
     "format:write": "prettier --write \"**/*.{ts,js,sol,md}\"",
     "lint": "eslint . --ext .ts",
     "generate-docs": "npx hardhat docgen",
-    "purge": "yarn clean",
     "token-manager:get-migration-data:solo": "VERBOSE=true npx hardhat run scripts/token-manager/getTokenManagerMigrationData.ts --network vechain_solo",
     "token-manager:get-migration-data:devnet": "VERBOSE=true npx hardhat run scripts/token-manager/getTokenManagerMigrationData.ts --network vechain_devnet",
     "token-manager:get-migration-data:testnet": "VERBOSE=true npx hardhat run scripts/token-manager/getTokenManagerMigrationData.ts --network vechain_testnet",

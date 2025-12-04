@@ -24,6 +24,7 @@ describe("shard-i4: Boost Maturity Period", () => {
     let deployer: HardhatEthersSigner;
     let user: HardhatEthersSigner;
     let otherUser: HardhatEthersSigner;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let stargateNftErrors: Errors;
     let tx: TransactionResponse;
 
@@ -100,7 +101,6 @@ describe("shard-i4: Boost Maturity Period", () => {
 
     it("Shouldn't be able to boost an already matured NFT", async () => {
         const levelId = 1;
-        const levelSpec = await stargateNFTContract.getLevel(levelId);
         const { tokenId } = await stakeAndMatureNFT(
             user,
             levelId,
@@ -147,7 +147,6 @@ describe("shard-i4: Boost Maturity Period", () => {
 
     it("Shouldn't be able to boost a NFT with too low allowance", async () => {
         const levelId = 1;
-        const levelSpec = await stargateNFTContract.getLevel(levelId);
         const { tokenId } = await stakeNFT(user, levelId, stargateContract, stargateNFTContract);
         const boostAmount = await stargateNFTContract.boostAmount(tokenId);
 

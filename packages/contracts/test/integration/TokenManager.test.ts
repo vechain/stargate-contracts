@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { StartedTestContainer } from "testcontainers";
 import { Errors, StargateNFT, Stargate } from "../../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { TransactionResponse, ZeroAddress } from "ethers";
+import { TransactionResponse } from "ethers";
 import {
     getStargateNFTErrorsInterface,
     getOrDeployContracts,
@@ -17,7 +17,6 @@ describe("shard-i9: Token Manager", () => {
     let stargateNFTContract: StargateNFT;
     let stargateContract: Stargate;
 
-    let deployer: HardhatEthersSigner;
     let user: HardhatEthersSigner;
     let manager: HardhatEthersSigner;
     let otherAccounts: HardhatEthersSigner[];
@@ -31,7 +30,6 @@ describe("shard-i9: Token Manager", () => {
         stargateNFTContract = contracts.stargateNFTContract;
         stargateContract = contracts.stargateContract;
 
-        deployer = contracts.deployer;
         user = contracts.otherAccounts[0];
         manager = contracts.otherAccounts[1];
         otherAccounts = contracts.otherAccounts;
@@ -116,9 +114,8 @@ describe("shard-i9: Token Manager", () => {
         await tx.wait();
 
         tx = await stargateNFTContract.connect(user).removeTokenManager(tokenId);
-        await tx.wait();
 
-        expect(tx)
+        await expect(tx)
             .to.emit(stargateNFTContract, "TokenManagerRemoved")
             .withArgs(tokenId, manager.address);
 

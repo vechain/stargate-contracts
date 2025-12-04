@@ -234,7 +234,7 @@ describe("shard-i2: Stargate: Delegation Status", () => {
     });
 
     it("If delegation is in a pending state, user can immediately unstake the NFT and get the VET back", async () => {
-        const { tokenId, levelVetAmountRequired, delegationId } = await stakeAndDelegateNFT(
+        const { tokenId, levelVetAmountRequired } = await stakeAndDelegateNFT(
             user,
             1, // levelId
             deployer.address,
@@ -286,7 +286,7 @@ describe("shard-i2: Stargate: Delegation Status", () => {
     // he decides to cancel the delegation request.
     // Then we test that he can correctly delegate again in the same period (then we cancel again) and then, after waiting a period, he can delegate again.
     it("If delegation is in a pending state, user can exit the delegation immediately", async () => {
-        const { tokenId, delegationId, levelSpec } = await stakeAndDelegateNFT(
+        const { tokenId, levelSpec } = await stakeAndDelegateNFT(
             user,
             1, // levelId
             deployer.address,
@@ -386,7 +386,7 @@ describe("shard-i2: Stargate: Delegation Status", () => {
     });
 
     it("If delegation is in a pending state, user can switch to a different validator", async () => {
-        const { tokenId, delegationId } = await stakeAndDelegateNFT(
+        const { tokenId } = await stakeAndDelegateNFT(
             user,
             1, // levelId
             deployer.address,

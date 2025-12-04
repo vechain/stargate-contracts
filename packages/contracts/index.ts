@@ -1,7 +1,7 @@
 import StargateNFTJson from "./artifacts/contracts/StargateNFT/StargateNFT.sol/StargateNFT.json";
 export { StargateNFTJson };
 
-import StargateDelegationJson from "./artifacts/contracts/deprecated/StargateDelegation/V3/StargateDelegation.sol/StargateDelegation.json";
+import StargateDelegationJson from "./artifacts/contracts/deprecated/StargateDelegation/V4/StargateDelegation.sol/StargateDelegation.json";
 export { StargateDelegationJson };
 
 import StargateJson from "./artifacts/contracts/Stargate.sol/Stargate.json";

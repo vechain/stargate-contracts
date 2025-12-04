@@ -43,13 +43,13 @@ interface IStargate {
     /// @param tokenId The ID of the token that was delegated
     /// @param validator The validator that was delegated to
     /// @param delegationId The ID of the delegation
-    /// @param exitBlock The block at which the delegation exit will be processed,
+    /// @param exitPeriod The period at which the delegation exit will be processed,
     /// in case the delegation is pending it will be the current block
     event DelegationExitRequested(
         uint256 indexed tokenId,
         address indexed validator,
         uint256 indexed delegationId,
-        uint48 exitBlock
+        uint48 exitPeriod
     );
 
     /// @notice Emitted when a delegation is withdrawn
@@ -84,6 +84,10 @@ interface IStargate {
         uint32 firstClaimedPeriod,
         uint32 lastClaimedPeriod
     );
+
+    /// @notice Emitted when the max claimable periods are set
+    /// @param maxClaimablePeriods The new max claimable periods
+    event MaxClaimablePeriodsSet(uint32 maxClaimablePeriods);
 
     // ---------- Data Types ------------ //
 

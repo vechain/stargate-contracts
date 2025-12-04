@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { StargateNFT, StargateNFT__factory, StargateNFTV2 } from "../../typechain-types";
+import { StargateNFT, StargateNFTV2 } from "../../typechain-types";
 import { deployStargateNFTLibraries } from "../../scripts/deploy/libraries";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { BytesLike } from "ethers";

@@ -28,14 +28,12 @@ describe("shard-u4: Stargate: Rewards", () => {
     let otherUser: HardhatEthersSigner;
     let validator: HardhatEthersSigner;
     let otherValidator: HardhatEthersSigner;
-    let otherAccounts: HardhatEthersSigner[];
     let tx: TransactionResponse;
     let vthoTokenContract: MyERC20;
 
     const LEVEL_ID = 1;
 
     const REWARDS_PER_PERIOD = 10n ** 17n; // 0.1 VTHO as stated in the mock contract
-    const VALIDATOR_STATUS_UNKNOWN = 0;
     const VALIDATOR_STATUS_QUEUED = 1;
     const VALIDATOR_STATUS_ACTIVE = 2;
     const VALIDATOR_STATUS_EXITED = 3;
@@ -88,7 +86,6 @@ describe("shard-u4: Stargate: Rewards", () => {
         otherUser = contracts.otherAccounts[1];
         validator = contracts.otherAccounts[2];
         otherValidator = contracts.otherAccounts[3];
-        otherAccounts = contracts.otherAccounts;
 
         // add default validator
         tx = await protocolStakerMock.addValidation(validator.address, 120);
@@ -247,7 +244,7 @@ describe("shard-u4: Stargate: Rewards", () => {
             );
             tx = await stargateContract.connect(user).claimRewards(tokenId);
             const receipt = await tx.wait();
-            log("\💰 Claimed rewards for the batch", i);
+            log("\n💰 Claimed rewards for the batch", i);
             const eventLog = receipt!.logs[1] as EventLog;
             log("\n💵 Claimed amount:", eventLog.args[3]);
         }
@@ -410,7 +407,7 @@ describe("shard-u4: Stargate: Rewards", () => {
         await tx.wait();
         log("\n🎉 Delegated token to validator", validator.address);
 
-        let currentPeriod = 28;
+        const currentPeriod = 28;
         tx = await protocolStakerMock.helper__setValidationCompletedPeriods(
             validator.address,
             currentPeriod - 1
@@ -463,7 +460,7 @@ describe("shard-u4: Stargate: Rewards", () => {
 
         // fast forward to the next period
         const maxClaimablePeriods = await stargateContract.getMaxClaimablePeriods();
-        let currentPeriod = 10;
+        const currentPeriod = 10;
 
         // fast forward some periods
         tx = await protocolStakerMock.helper__setValidationCompletedPeriods(
@@ -494,7 +491,7 @@ describe("shard-u4: Stargate: Rewards", () => {
         log("\n🎉 Delegated token to validator", validator.address);
 
         // fast forward to the next period
-        let currentPeriod = 5;
+        const currentPeriod = 5;
 
         // fast forward some periods
         tx = await protocolStakerMock.helper__setValidationCompletedPeriods(
@@ -749,6 +746,179 @@ describe("shard-u4: Stargate: Rewards", () => {
         expect(firstClaimablePeriod).to.be.equal(expectedFirstClaimablePeriod);
         expect(lastClaimablePeriod).to.be.equal(expectedLastClaimablePeriod);
     });
+    it("should return the correct claimable periods when the delegation is exited and the user claims the rewards", async () => {
+        let currentPeriod = 1;
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        // delegate the token to the validator
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated token to validator", validator.address);
+
+        // fast forward some periods
+        currentPeriod = 5;
+        tx = await protocolStakerMock.helper__setValidationCompletedPeriods(
+            validator.address,
+            currentPeriod - 1
+        );
+        await tx.wait();
+        log("\n🎉 Set validator completed periods to ", currentPeriod - 1);
+
+        expect(await stargateContract.getDelegationStatus(tokenId)).to.be.equal(
+            DELEGATION_STATUS_ACTIVE
+        );
+
+        // request delegation exit
+        tx = await stargateContract.connect(user).requestDelegationExit(tokenId);
+        await tx.wait();
+        log("\n🎉 Requested delegation exit");
+
+        currentPeriod = 6;
+        tx = await protocolStakerMock.helper__setValidationCompletedPeriods(
+            validator.address,
+            currentPeriod - 1
+        );
+        await tx.wait();
+        log("\n🎉 Set validator completed periods to ", currentPeriod - 1);
+
+        expect(await stargateContract.getDelegationStatus(tokenId)).to.be.equal(
+            DELEGATION_STATUS_EXITED
+        );
+
+        tx = await stargateContract.connect(user).claimRewards(tokenId);
+        await tx.wait();
+        log("\n🎉 Claimed rewards");
+
+        currentPeriod = 15;
+        tx = await protocolStakerMock.helper__setValidationCompletedPeriods(
+            validator.address,
+            currentPeriod - 1
+        );
+        await tx.wait();
+        log("\n🎉 Set validator completed periods to ", currentPeriod - 1);
+
+        const [firstClaimablePeriod, lastClaimablePeriod] =
+            await stargateContract.claimableDelegationPeriods(tokenId);
+        expect(firstClaimablePeriod).to.be.equal(0);
+        expect(lastClaimablePeriod).to.be.equal(0);
+    });
+
+    it("should return the correct claimable periods when the delegation is exited and the user unstakes the token", async () => {
+        let currentPeriod = 1;
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        // delegate the token to the validator
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated token to validator", validator.address);
+
+        // fast forward some periods
+        currentPeriod = 5;
+        tx = await protocolStakerMock.helper__setValidationCompletedPeriods(
+            validator.address,
+            currentPeriod - 1
+        );
+        await tx.wait();
+        log("\n🎉 Set validator completed periods to ", currentPeriod - 1);
+
+        expect(await stargateContract.getDelegationStatus(tokenId)).to.be.equal(
+            DELEGATION_STATUS_ACTIVE
+        );
+
+        // request delegation exit
+        tx = await stargateContract.connect(user).requestDelegationExit(tokenId);
+        await tx.wait();
+        log("\n🎉 Requested delegation exit");
+
+        currentPeriod = 6;
+        tx = await protocolStakerMock.helper__setValidationCompletedPeriods(
+            validator.address,
+            currentPeriod - 1
+        );
+        await tx.wait();
+        log("\n🎉 Set validator completed periods to ", currentPeriod - 1);
+
+        expect(await stargateContract.getDelegationStatus(tokenId)).to.be.equal(
+            DELEGATION_STATUS_EXITED
+        );
+
+        tx = await stargateContract.connect(user).unstake(tokenId);
+        await tx.wait();
+        log("\n🎉 Claimed rewards");
+
+        currentPeriod = 15;
+        tx = await protocolStakerMock.helper__setValidationCompletedPeriods(
+            validator.address,
+            currentPeriod - 1
+        );
+        await tx.wait();
+        log("\n🎉 Set validator completed periods to ", currentPeriod - 1);
+
+        const [firstClaimablePeriod, lastClaimablePeriod] =
+            await stargateContract.claimableDelegationPeriods(tokenId);
+        expect(firstClaimablePeriod).to.be.equal(0);
+        expect(lastClaimablePeriod).to.be.equal(0);
+    });
+
+    it("should return the correct claimable periods when delagationg to a queued validator that then switches to active", async () => {
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        tx = await protocolStakerMock.helper__setValidatorStatus(
+            validator.address,
+            VALIDATOR_STATUS_QUEUED
+        );
+        await tx.wait();
+
+        const validatorDetails = await protocolStakerMock.getValidation(validator.address);
+        expect(validatorDetails._status).to.equal(VALIDATOR_STATUS_QUEUED);
+
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated token to validator", validator.address);
+
+        expect(await stargateContract.getDelegationStatus(tokenId)).to.be.equal(
+            DELEGATION_STATUS_PENDING
+        );
+
+        tx = await protocolStakerMock.helper__setValidatorStatus(
+            validator.address,
+            VALIDATOR_STATUS_ACTIVE
+        );
+        await tx.wait();
+        tx = await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 10);
+        await tx.wait();
+
+        expect(await stargateContract.getDelegationStatus(tokenId)).to.be.equal(
+            DELEGATION_STATUS_ACTIVE
+        );
+        log("\n🎉 Set validator status to active");
+
+        const [firstClaimablePeriod, lastClaimablePeriod] =
+            await stargateContract.claimableDelegationPeriods(tokenId);
+
+        // expect period 1 to be claimable
+        expect(firstClaimablePeriod).to.be.equal(1);
+        // expect period 10 to be claimable
+        expect(lastClaimablePeriod).to.be.equal(10);
+    });
 
     // Test max claimable periods
     it("should return the correct max claimable periods", async () => {
@@ -821,5 +991,138 @@ describe("shard-u4: Stargate: Rewards", () => {
 
         const claimableRewards2 = await stargateContract["claimableRewards(uint256)"](tokenId);
         expect(claimableRewards2).to.be.equal(0n);
+    });
+    it("should be able to claim rewards when the delegation rewards of one period are 0", async () => {
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated token to validator", validator.address);
+
+        tx = await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 3);
+        await tx.wait();
+        log("\n🎉 Set validator completed periods to 3");
+
+        const claimableRewards = await stargateContract["claimableRewards(uint256)"](tokenId);
+        expect(claimableRewards).to.be.greaterThan(0);
+
+        tx = await protocolStakerMock.helper__setZeroRewardsPerPeriod(4);
+        await tx.wait();
+        log("\n🎉 Set rewards per period to 0 for period 4");
+
+        tx = await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 7);
+        await tx.wait();
+        log("\n🎉 Set validator completed periods to 7");
+
+        tx = await stargateContract.connect(user).claimRewards(tokenId);
+
+        const claimableDelegationPeriods =
+            await stargateContract.claimableDelegationPeriods(tokenId);
+        expect(claimableDelegationPeriods[0]).to.equal(0);
+        expect(claimableDelegationPeriods[1]).to.equal(0);
+        const claimableRewards2 = await stargateContract["claimableRewards(uint256)"](tokenId);
+        expect(claimableRewards2).to.equal(0);
+    });
+    it("should be able to claim rewards when all periods have 0 rewards except for the last one", async () => {
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated token to validator", validator.address);
+
+        // set all periods to 0 rewards except for the last one
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(1);
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(2);
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(3);
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(4);
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(5);
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(6);
+
+        tx = await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 7);
+        await tx.wait();
+        log("\n🎉 Set validator completed periods to 7");
+
+        const claimableRewards2 = await stargateContract["claimableRewards(uint256)"](tokenId);
+        expect(claimableRewards2).to.be.greaterThan(0);
+
+        tx = await stargateContract.connect(user).claimRewards(tokenId);
+
+        const claimableDelegationPeriods =
+            await stargateContract.claimableDelegationPeriods(tokenId);
+        expect(claimableDelegationPeriods[0]).to.equal(0);
+        expect(claimableDelegationPeriods[1]).to.equal(0);
+        const claimableRewards3 = await stargateContract["claimableRewards(uint256)"](tokenId);
+        expect(claimableRewards3).to.equal(0);
+    });
+    it("should be able to claim rewards after in case a whole batch happened and no rewards were given", async () => {
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated token to validator", validator.address);
+
+        // set all periods to 0 rewards except for the last one
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(1);
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(2);
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(3);
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(4);
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(5);
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(6);
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(7);
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(8);
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(9);
+        await protocolStakerMock.helper__setZeroRewardsPerPeriod(10);
+
+        // set the validator completed periods to 11
+        // max claimable periods is 8, so the first batch will be 1 to 8, the second batch will be 9 to 16, etc.
+        tx = await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 16);
+        await tx.wait();
+        log("\n🎉 Set validator completed periods to 7");
+
+        const claimableRewardsBatch0 = await stargateContract["claimableRewards(uint256,uint32)"](
+            tokenId,
+            0
+        );
+        expect(claimableRewardsBatch0).to.be.equal(0);
+        console.log("claimableRewardsBatch0", claimableRewardsBatch0);
+        const claimableRewardsBatch1 = await stargateContract["claimableRewards(uint256,uint32)"](
+            tokenId,
+            1
+        );
+        expect(claimableRewardsBatch1).to.be.greaterThan(0);
+        console.log("claimableRewardsBatch1", claimableRewardsBatch1);
+
+        // claim rewards for batch 0
+        tx = await stargateContract.connect(user).claimRewards(tokenId);
+        await tx.wait();
+        // claim rewards for batch 1
+        tx = await stargateContract.connect(user).claimRewards(tokenId);
+        await tx.wait();
+        log("\n🎉 Claimed rewards");
+
+        const claimableRewardsBatch2 = await stargateContract["claimableRewards(uint256,uint32)"](
+            tokenId,
+            1
+        );
+        expect(claimableRewardsBatch2).to.be.equal(0);
+        console.log("claimableRewardsBatch2", claimableRewardsBatch2);
     });
 });

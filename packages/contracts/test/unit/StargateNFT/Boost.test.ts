@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 import { createLocalConfig } from "@repo/config/contracts/envs/local";
 import { getOrDeployContracts, getStargateNFTErrorsInterface, log } from "../../helpers";
 import { Errors, MyERC20, MyERC20__factory, Stargate, StargateNFT } from "../../../typechain-types";
-import { TransactionResponse, ZeroAddress } from "ethers";
+import { TransactionResponse } from "ethers";
 import { mine } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("shard-u103: StargateNFT: Boost", () => {
@@ -170,7 +170,6 @@ describe("shard-u103: StargateNFT: Boost", () => {
         });
         it("shouldn't be able to boost on behalf of when the caller is not the stargate contract", async () => {
             const levelId = 1;
-            const levelSpec = await stargateNFTContract.getLevel(levelId);
             tx = await stargateNFTContract.mint(levelId, user.address);
             await tx.wait();
             const tokenId = await stargateNFTContract.getCurrentTokenId();
@@ -184,6 +183,7 @@ describe("shard-u103: StargateNFT: Boost", () => {
         });
         it("should be able to boost on behalf of other user using the user's allowance when the caller is the stargate contract", async () => {
             const levelId = 1;
+            const levelSpec = await stargateNFTContract.getLevel(levelId);
             tx = await stargateNFTContract.mint(levelId, user.address);
             await tx.wait();
             const tokenId = await stargateNFTContract.getCurrentTokenId();
@@ -210,6 +210,9 @@ describe("shard-u103: StargateNFT: Boost", () => {
                 .boostOnBehalfOf(user.address, tokenId);
             await tx.wait();
             log("✅ Boosted NFT");
+            expect(tx)
+                .to.emit(stargateNFTContract, "MaturityPeriodBoosted")
+                .withArgs(tokenId, user.address, boostAmount, levelSpec.maturityBlocks);
             const newVthoBalance = await vthoTokenContract.balanceOf(user.address);
             log("👀 New VTHO balance", newVthoBalance);
             expect(newVthoBalance).to.be.lessThan(boostAmount);

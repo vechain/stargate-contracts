@@ -1,6 +1,6 @@
 import { ethers, network } from "hardhat";
 import { mine } from "@nomicfoundation/hardhat-network-helpers";
-import { StargateNFT, Errors__factory, IProtocolStaker } from "../../typechain-types";
+import { StargateNFT, Errors__factory } from "../../typechain-types";
 import { getOrDeployContracts } from "./deploy";
 
 export const mineBlocks = async (blocks: number) => {

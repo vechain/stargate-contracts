@@ -1,6 +1,4 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
-import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { Stargate, IProtocolStaker, StargateNFT } from "../../../typechain-types";
 import { getOrDeployContracts } from "../../helpers/deploy";
 import { createLocalConfig } from "@repo/config/contracts/envs/local";
@@ -9,11 +7,9 @@ describe("shard-u7: Stargate: Contracts getters", () => {
     let stargateContract: Stargate;
     let protocolStakerContract: IProtocolStaker;
     let stargateNFTContract: StargateNFT;
-    let deployer: HardhatEthersSigner;
 
     beforeEach(async () => {
         const config = createLocalConfig();
-        [deployer] = await ethers.getSigners();
         const contracts = await getOrDeployContracts({ forceDeploy: true, config });
 
         stargateContract = contracts.stargateContract;

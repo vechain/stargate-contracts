@@ -22,7 +22,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { IStargateNFT } from "../interfaces/IStargateNFT.sol";
 import { ITokenAuction } from "../interfaces/ITokenAuction.sol";
-import { IStargateDelegation } from "../deprecated/StargateDelegation/V3/IStargateDelegation.sol";
+import { IStargateDelegationV3 } from "../deprecated/StargateDelegation/V3/IStargateDelegationV3.sol";
 import { DataTypes } from "./libraries/DataTypes.sol";
 import { MintingLogic } from "./libraries/MintingLogic.sol";
 import { Token } from "./libraries/Token.sol";
@@ -103,7 +103,7 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 /// - Added a helper function to transfer the VET stored in this contract to the new Stargate contract
 /// - Added the possibility for an owner to add a manager to his NFT; The access level of the managers are handled in the Stargate contract.
 ///   Upon a transfer, the manager is removed from the token.
-/// - Added a function to migrate the manager of a token to the StargateNFT contract, this function is only callable by the DEFAULT_ADMIN_ROLE
+/// - Added a function to migrate the manager of a token to the StargateNFT contract, this function is only callable by the TOKEN_MANAGER_MIGRATOR_ROLE
 /// so we can migrate the storage from NodeManagementV3 to StargateNFT, after the migration we can remove this function
 contract StargateNFT is
     AccessControlUpgradeable,
@@ -121,7 +121,6 @@ contract StargateNFT is
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant LEVEL_OPERATOR_ROLE = keccak256("LEVEL_OPERATOR_ROLE");
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
-    bytes32 public constant WHITELISTER_ROLE = keccak256("WHITELISTER_ROLE");
     bytes32 public constant TOKEN_MANAGER_MIGRATOR_ROLE = keccak256("TOKEN_MANAGER_MIGRATOR_ROLE");
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -209,7 +208,7 @@ contract StargateNFT is
 
         // Initialize the storage
         $.legacyNodes = ITokenAuction(_initParams.legacyNodes);
-        $.stargateDelegation_deprecated = IStargateDelegation(_initParams.stargateDelegation);
+        $.stargateDelegation_deprecated = IStargateDelegationV3(_initParams.stargateDelegation);
         $.vthoToken = IERC20(_initParams.vthoToken);
         $.currentTokenId = _initParams.legacyLastTokenId;
         $.baseTokenURI = _initParams.baseTokenURI;
@@ -300,9 +299,12 @@ contract StargateNFT is
 
     /// @inheritdoc IStargateNFT
     function addLevel(
-        DataTypes.LevelAndSupply memory _levelAndSupply
+        DataTypes.LevelAndSupply memory _levelAndSupply,
+        uint256 _boostPricePerBlock
     ) public onlyRole(LEVEL_OPERATOR_ROLE) {
-        Levels.addLevel(_getStargateNFTStorage(), _levelAndSupply);
+        DataTypes.StargateNFTStorage storage $ = _getStargateNFTStorage();
+        Levels.addLevel($, _levelAndSupply);
+        Levels.updateLevelBoostPricePerBlock($, $.MAX_LEVEL_ID, _boostPricePerBlock);
     }
 
     /// @inheritdoc IStargateNFT
@@ -565,7 +567,7 @@ contract StargateNFT is
 
     /// @notice Public override of the ERC721Upgradeable.tokenURI function
     /// @param _tokenId - the token ID to get the token URI for
-    /// @return tokenURI - the token URI string if the token level ID is not 0, empty string otherwise
+    /// @return tokenURI - the token URI string if the token exists, revert otherwise
     function tokenURI(
         uint256 _tokenId
     ) public view override(ERC721Upgradeable) returns (string memory) {

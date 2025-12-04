@@ -1,16 +1,11 @@
-import { getConfig } from "@repo/config";
-
 import { execSync } from "child_process";
 import { selectDeployConfig } from "./select-deploy-config";
-import { EnvConfig } from "@repo/config/contracts";
 import inquirer from "inquirer";
 
 async function selectAndDeployContract() {
     try {
         const env = process.env.VITE_APP_ENV;
         if (!env) throw new Error("Environment variable VITE_APP_ENV is not set.");
-
-        const config = getConfig(process.env.VITE_APP_ENV as EnvConfig);
 
         const { contract } = await inquirer.prompt<{
             contract: keyof typeof selectDeployConfig;

@@ -1,4 +1,4 @@
-import { BaseContract, Contract, ContractFactory, Interface } from "ethers";
+import { BaseContract, Contract, Interface } from "ethers";
 import { ethers } from "hardhat";
 import { getImplementationAddress } from "@openzeppelin/upgrades-core";
 import { AddressUtils } from "@repo/utils";

@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { Stargate, StargateNFT } from "../../../typechain-types";
+import { StargateNFT } from "../../../typechain-types";
 import { getOrDeployContracts } from "../../helpers/deploy";
 import { createLocalConfig } from "@repo/config/contracts/envs/local";
 import { ethers } from "hardhat";
@@ -10,9 +10,7 @@ describe("shard-u108: StargateNFT: Pausing", () => {
     let stargateNFTContract: StargateNFT;
     let deployer: HardhatEthersSigner;
     let user: HardhatEthersSigner;
-    let otherAccounts: HardhatEthersSigner[];
     let tx: TransactionResponse;
-    let validator: HardhatEthersSigner;
 
     beforeEach(async () => {
         const config = createLocalConfig();
@@ -24,8 +22,6 @@ describe("shard-u108: StargateNFT: Pausing", () => {
         stargateNFTContract = contracts.stargateNFTContract;
 
         user = contracts.otherAccounts[0];
-        otherAccounts = contracts.otherAccounts;
-        validator = contracts.otherAccounts[1];
 
         await stargateNFTContract.grantRole(
             await stargateNFTContract.PAUSER_ROLE(),

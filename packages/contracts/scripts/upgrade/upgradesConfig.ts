@@ -9,10 +9,11 @@ export const upgradeConfig: Record<string, UpgradeContract> = {
     "Stargate Delegation": {
         name: "stargate-delegation",
         configAddressField: "stargateDelegationContractAddress",
-        versions: ["v2", "v3"],
+        versions: ["v2", "v3", "v4"],
         descriptions: {
             v2: "Fix: Correctly update rewards accumulation start block when claiming delegation rewards.",
             v3: "Feat: Allow claiming lost rewards caused by the v1 implementation",
+            v4: "Hot fix: Correctly calculate the last completed delegation period end block for active delegations",
         },
     },
     "Stargate NFT": {

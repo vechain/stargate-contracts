@@ -78,6 +78,44 @@ describe("shard-u111: StargateNFT: Initialize", () => {
                     }
                 )
             ).to.not.be.reverted;
+
+            expect(await stargateNFTContract.symbol()).to.equal("SDT");
+            expect(await stargateNFTContract.name()).to.equal("StarGate Delegator Token");
+            expect(await stargateNFTContract.legacyNodes()).to.equal(
+                config.TOKEN_AUCTION_CONTRACT_ADDRESS
+            );
+            expect(await stargateNFTContract.getCurrentTokenId()).to.equal(
+                config.LEGACY_LAST_TOKEN_ID
+            );
+            expect(await stargateNFTContract.getVthoTokenAddress()).to.deep.equal(
+                config.VTHO_TOKEN_ADDRESS
+            );
+            expect(await stargateNFTContract.baseURI()).to.deep.equal(config.BASE_TOKEN_URI);
+
+            expect(
+                await stargateNFTContract.hasRole(
+                    await stargateNFTContract.DEFAULT_ADMIN_ROLE(),
+                    deployer.address
+                )
+            ).to.be.true;
+            expect(
+                await stargateNFTContract.hasRole(
+                    await stargateNFTContract.UPGRADER_ROLE(),
+                    deployer.address
+                )
+            ).to.be.true;
+            expect(
+                await stargateNFTContract.hasRole(
+                    await stargateNFTContract.PAUSER_ROLE(),
+                    deployer.address
+                )
+            ).to.be.true;
+            expect(
+                await stargateNFTContract.hasRole(
+                    await stargateNFTContract.LEVEL_OPERATOR_ROLE(),
+                    deployer.address
+                )
+            ).to.be.true;
         });
         it("should fail to initialize v1 of the contract because the admin address is zero", async () => {
             await expect(
@@ -589,6 +627,7 @@ describe("shard-u111: StargateNFT: Initialize", () => {
                     3
                 )
             ).to.not.be.reverted;
+            expect(await stargateNFTContract.getStargate()).to.equal(deployer.address);
         });
 
         it("should fail to initialize v3 of the contract because the stargate address is zero", async () => {
@@ -622,6 +661,28 @@ describe("shard-u111: StargateNFT: Initialize", () => {
                         deployer.address,
                         [...config.STARGATE_NFT_BOOST_LEVEL_IDS!, 15],
                         config.STARGATE_NFT_BOOST_PRICES_PER_BLOCK,
+                    ],
+                    {
+                        Clock: await libraries.StargateNFTClockLib.getAddress(),
+                        Levels: await libraries.StargateNFTLevelsLib.getAddress(),
+                        MintingLogic: await libraries.StargateNFTMintingLib.getAddress(),
+                        Settings: await libraries.StargateNFTSettingsLib.getAddress(),
+                        Token: await libraries.StargateNFTTokenLib.getAddress(),
+                        TokenManager: await libraries.StargateNFTTokenManagerLib.getAddress(),
+                    },
+                    3
+                )
+            ).to.be.revertedWithCustomError(stargateNFTContract, "ArraysLengthMismatch");
+        });
+        it("should fail to initialize v3 of the contract because the level ids and prices per block are different lengths", async () => {
+            await expect(
+                initializeProxy(
+                    stargateNFTProxyAddress,
+                    "StargateNFT",
+                    [
+                        deployer.address,
+                        config.STARGATE_NFT_BOOST_LEVEL_IDS,
+                        [...config.STARGATE_NFT_BOOST_PRICES_PER_BLOCK!, 15],
                     ],
                     {
                         Clock: await libraries.StargateNFTClockLib.getAddress(),

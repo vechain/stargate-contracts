@@ -44,7 +44,7 @@ export async function deployAll(config: ContractsConfig): Promise<DeployedContra
     console.log(`🔑 Admin Address: ${ADMIN_ADDRESS}`);
 
     // ---------------------- Deploy Mocks if not mainnet ----------------------
-    let vechainNodesMockAddress, clockAuctionMockAddress, erc721MockAddress, erc1155MockAddress;
+    let vechainNodesMockAddress, clockAuctionMockAddress;
 
     let vechainNodesMock = await ethers.getContractAt(
         "TokenAuction",
@@ -151,6 +151,7 @@ export async function deployAll(config: ContractsConfig): Promise<DeployedContra
     console.log("-".repeat(40));
 
     console.log("  ⚡ Initializing Stargate...");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const stargate = (await initializeProxyAllVersions(
         "Stargate",
         stargateProxyAddress,

@@ -18,7 +18,6 @@ describe("shard-u102: StargateNFT: MintingLogic", () => {
     let otherAccounts: HardhatEthersSigner[];
     let deployer: HardhatEthersSigner;
     let user: HardhatEthersSigner;
-    let otherUser: HardhatEthersSigner;
     let stargateNFTContract: StargateNFT;
     let stargateContract: Stargate;
     let legacyNodesMock: TokenAuctionMock;
@@ -51,7 +50,6 @@ describe("shard-u102: StargateNFT: MintingLogic", () => {
         deployer = contracts.deployer;
         stargateMockCaller = deployer;
         user = otherAccounts[0];
-        otherUser = otherAccounts[1];
         stargateNFTContract = contracts.stargateNFTContract;
         stargateContract = contracts.stargateContract;
         errorsInterface = await getStargateNFTErrorsInterface();
@@ -93,6 +91,10 @@ describe("shard-u102: StargateNFT: MintingLogic", () => {
             await expect(tx)
                 .to.emit(stargateNFTContract, "TokenMinted")
                 .withArgs(user.address, level.id, false, tokenId, level.vetAmountRequiredToStake);
+
+            const tokenIdAfterMint = await stargateNFTContract.getCurrentTokenId();
+            expect(tokenIdAfterMint).to.equal(tokenId);
+            // check the return value of the mint function
 
             const token = await stargateNFTContract.getToken(tokenId);
             expect(token.levelId).to.equal(level.id);
@@ -161,6 +163,24 @@ describe("shard-u102: StargateNFT: MintingLogic", () => {
             expect(levelSupply.cap).to.equal(levelSupplyAfterMint.cap);
             // verify owner
             await expect(stargateNFTContract.ownerOf(tokenId))
+                .to.be.revertedWithCustomError(stargateNFTContract, "ERC721NonexistentToken")
+                .withArgs(tokenId);
+
+            // verify that the token is not under the maturity period
+            await expect(stargateNFTContract.isUnderMaturityPeriod(tokenId))
+                .to.be.revertedWithCustomError(stargateNFTContract, "ERC721NonexistentToken")
+                .withArgs(tokenId);
+
+            // verify that the maturity period end block is 0
+            await expect(stargateNFTContract.maturityPeriodEndBlock(tokenId))
+                .to.be.revertedWithCustomError(stargateNFTContract, "ERC721NonexistentToken")
+                .withArgs(tokenId);
+
+            // verify that the token does not exist
+            expect(await stargateNFTContract.tokenExists(tokenId)).to.equal(false);
+
+            // verify that the token level is 0
+            await expect(stargateNFTContract.getToken(tokenId))
                 .to.be.revertedWithCustomError(stargateNFTContract, "ERC721NonexistentToken")
                 .withArgs(tokenId);
         });

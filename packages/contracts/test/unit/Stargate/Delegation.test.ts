@@ -16,6 +16,7 @@ import { ethers } from "hardhat";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { TransactionResponse } from "ethers";
 import { log } from "../../../scripts/helpers/log";
+import { ZERO_ADDRESS } from "@vechain/sdk-core";
 
 describe("shard-u2: Stargate: Delegation", () => {
     const VTHO_TOKEN_ADDRESS = "0x0000000000000000000000000000456E65726779";
@@ -508,6 +509,16 @@ describe("shard-u2: Stargate: Delegation", () => {
         const tokenId = await stargateNFTMock.getCurrentTokenId();
         log("\n🎉 Staked token with id:", tokenId);
 
+        const completedPeriods = 1;
+        const currentPeriod = completedPeriods + 1;
+        // advance 1 period
+        // so the delegation is active
+        tx = await protocolStakerMock.helper__setValidationCompletedPeriods(
+            validator.address,
+            completedPeriods
+        );
+        await tx.wait();
+
         // delegate the NFT to the validator
         tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
         await tx.wait();
@@ -529,14 +540,12 @@ describe("shard-u2: Stargate: Delegation", () => {
             levelSpec.vetAmountRequiredToStake,
             levelSpec.id
         );
-        await expect(callTx)
-            .to.emit(stargateContract, "DelegationExitRequested")
-            .withArgs(
-                tokenId,
-                validator.address, // old validator address
-                delegationId,
-                await stargateContract.clock()
-            );
+        await expect(callTx).to.emit(stargateContract, "DelegationExitRequested").withArgs(
+            tokenId,
+            validator.address, // old validator address
+            delegationId,
+            currentPeriod
+        );
         await expect(callTx).to.not.emit(stargateContract, "DelegationRewardsClaimed");
         await expect(callTx)
             .to.emit(stargateContract, "DelegationInitiated")
@@ -1046,7 +1055,7 @@ describe("shard-u2: Stargate: Delegation", () => {
     });
 
     it("should have the correct effective stake if the token is unstaked while the delegation is pending", async () => {
-        let currentPeriod = 1n;
+        const currentPeriod = 1n;
         const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
         tx = await stargateContract.connect(user).stake(LEVEL_ID, {
             value: levelSpec.vetAmountRequiredToStake,
@@ -1076,7 +1085,7 @@ describe("shard-u2: Stargate: Delegation", () => {
     });
 
     it("should have the correct effective stake if the validator is changed while the delegation is pending", async () => {
-        let currentPeriod = 1n;
+        const currentPeriod = 1n;
         const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
         tx = await stargateContract.connect(user).stake(LEVEL_ID, {
             value: levelSpec.vetAmountRequiredToStake,
@@ -1234,7 +1243,7 @@ describe("shard-u2: Stargate: Delegation", () => {
         log("\n🎉 Delegated token to validator", validator.address);
 
         // set the completed periods to 4 so the delegation is active
-        let currentPeriod = 5n;
+        const currentPeriod = 5n;
         tx = await protocolStakerMock.helper__setValidationCompletedPeriods(
             validator.address,
             currentPeriod - 1n
@@ -1255,7 +1264,7 @@ describe("shard-u2: Stargate: Delegation", () => {
         expect(hasRequestedExit).to.be.true;
     });
 
-    it("should return true if the delegation is exited", async () => {
+    it("should return false if the delegation is exited", async () => {
         const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
         tx = await stargateContract.connect(user).stake(LEVEL_ID, {
             value: levelSpec.vetAmountRequiredToStake,
@@ -1299,7 +1308,341 @@ describe("shard-u2: Stargate: Delegation", () => {
         );
 
         const hasRequestedExit = await stargateContract.hasRequestedExit(tokenId);
-        // should be true because the delegation is exited
-        expect(hasRequestedExit).to.be.true;
+        // should be false because the delegation is exited
+        expect(hasRequestedExit).to.be.false;
+    });
+
+    it("should have the correct effective stake if the protocol is in transition period", async () => {
+        await protocolStakerMock.helper__setFirstActive(ZERO_ADDRESS);
+        await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 0);
+
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        // delegate the token to the validator
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated token to validator", validator.address);
+
+        // check that the effective stake is the correct one
+        const effectiveStake = await stargateContract.getDelegatorsEffectiveStake(
+            validator.address,
+            1n
+        );
+        expect(effectiveStake).to.be.equal(
+            (levelSpec.vetAmountRequiredToStake * levelSpec.scaledRewardFactor) / 100n
+        );
+    });
+    it("should have the correct effective stake if the protocol is in transition period and request exit", async () => {
+        await protocolStakerMock.helper__setFirstActive(ZERO_ADDRESS);
+        await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 0);
+
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        // delegate the token to the validator
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated token to validator", validator.address);
+
+        // request exit
+        tx = await stargateContract.connect(user).requestDelegationExit(tokenId);
+        await tx.wait();
+        log("\n🎉 Requested exit of token", tokenId);
+
+        // check that the effective stake is the correct one
+        const effectiveStake = await stargateContract.getDelegatorsEffectiveStake(
+            validator.address,
+            1n
+        );
+        expect(effectiveStake).to.be.equal(0);
+    });
+    it("should have the correct effective stake if the protocol is in transition period and changes validator", async () => {
+        await protocolStakerMock.helper__setFirstActive(ZERO_ADDRESS);
+        await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 0);
+
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        // delegate the token to the validator
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated token to validator", validator.address);
+
+        // change validator
+        tx = await stargateContract.connect(user).delegate(tokenId, otherValidator.address);
+        await tx.wait();
+        log("\n🎉 Changed validator to", otherValidator.address);
+
+        // check that the effective stake is the correct one
+        const effectiveStake = await stargateContract.getDelegatorsEffectiveStake(
+            validator.address,
+            1n
+        );
+        expect(effectiveStake).to.be.equal(0);
+
+        const effectiveStakeInOtherValidator = await stargateContract.getDelegatorsEffectiveStake(
+            otherValidator.address,
+            1n
+        );
+        expect(effectiveStakeInOtherValidator).to.be.equal(
+            (levelSpec.vetAmountRequiredToStake * levelSpec.scaledRewardFactor) / 100n
+        );
+    });
+    it("should have the correct effective stake if the protocol is in transition period and unstakes", async () => {
+        await protocolStakerMock.helper__setFirstActive(ZERO_ADDRESS);
+        await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 0);
+
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        // delegate the token to the validator
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated token to validator", validator.address);
+
+        const effectiveStakePreUnstake = await stargateContract.getDelegatorsEffectiveStake(
+            validator.address,
+            1n
+        );
+        expect(effectiveStakePreUnstake).to.be.equal(
+            (levelSpec.vetAmountRequiredToStake * levelSpec.scaledRewardFactor) / 100n
+        );
+
+        // unstake the token
+        tx = await stargateContract.connect(user).unstake(tokenId);
+        await tx.wait();
+        log("\n🎉 Unstaked token", tokenId);
+
+        // check that the effective stake is the correct one
+        const effectiveStakePostUnstake = await stargateContract.getDelegatorsEffectiveStake(
+            validator.address,
+            1n
+        );
+        expect(effectiveStakePostUnstake).to.be.equal(0);
+    });
+    it("should have the correct effective stake if the validator is queued", async () => {
+        await protocolStakerMock.helper__setValidatorStatus(
+            validator.address,
+            VALIDATOR_STATUS_QUEUED
+        );
+        await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 0);
+
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        // delegate the token to the validator
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated token to validator", validator.address);
+
+        // check that the effective stake is the correct one
+        const effectiveStake = await stargateContract.getDelegatorsEffectiveStake(
+            validator.address,
+            1n
+        );
+        expect(effectiveStake).to.be.equal(
+            (levelSpec.vetAmountRequiredToStake * levelSpec.scaledRewardFactor) / 100n
+        );
+    });
+    it("should have the correct effective stake if the validator is queued and request exit", async () => {
+        await protocolStakerMock.helper__setValidatorStatus(
+            validator.address,
+            VALIDATOR_STATUS_QUEUED
+        );
+        await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 0);
+
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        // delegate the token to the validator
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated token to validator", validator.address);
+
+        // request exit
+        tx = await stargateContract.connect(user).requestDelegationExit(tokenId);
+        await tx.wait();
+        log("\n🎉 Requested exit of token", tokenId);
+
+        // check that the effective stake is the correct one
+        const effectiveStake = await stargateContract.getDelegatorsEffectiveStake(
+            validator.address,
+            1n
+        );
+        expect(effectiveStake).to.be.equal(0);
+    });
+    it("should have the correct effective stake if the validator is queued and changes validator", async () => {
+        const completedPeriodsByOtherValidator = 10n;
+        await protocolStakerMock.helper__setValidatorStatus(
+            validator.address,
+            VALIDATOR_STATUS_QUEUED
+        );
+        await protocolStakerMock.helper__setValidatorStatus(
+            otherValidator.address,
+            VALIDATOR_STATUS_ACTIVE
+        );
+        await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 0);
+        await protocolStakerMock.helper__setValidationCompletedPeriods(
+            otherValidator.address,
+            completedPeriodsByOtherValidator
+        );
+
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        // delegate the token to the validator
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated token to validator", validator.address);
+
+        // change validator
+        tx = await stargateContract.connect(user).delegate(tokenId, otherValidator.address);
+        await tx.wait();
+        log("\n🎉 Changed validator to", otherValidator.address);
+
+        // check that the effective stake is the correct one
+        const effectiveStake = await stargateContract.getDelegatorsEffectiveStake(
+            validator.address,
+            1n
+        );
+        expect(effectiveStake).to.be.equal(0);
+
+        const effectiveStakeInOtherValidator = await stargateContract.getDelegatorsEffectiveStake(
+            otherValidator.address,
+            completedPeriodsByOtherValidator + 2n
+        );
+        expect(effectiveStakeInOtherValidator).to.be.equal(
+            (levelSpec.vetAmountRequiredToStake * levelSpec.scaledRewardFactor) / 100n
+        );
+    });
+    it("should have the correct effective stake if the validator is queued and unstakes", async () => {
+        await protocolStakerMock.helper__setValidatorStatus(
+            validator.address,
+            VALIDATOR_STATUS_QUEUED
+        );
+        await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 0);
+
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        // delegate the token to the validator
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated token to validator", validator.address);
+
+        const effectiveStakePreUnstake = await stargateContract.getDelegatorsEffectiveStake(
+            validator.address,
+            1n
+        );
+        expect(effectiveStakePreUnstake).to.be.equal(
+            (levelSpec.vetAmountRequiredToStake * levelSpec.scaledRewardFactor) / 100n
+        );
+
+        // unstake the token
+        tx = await stargateContract.connect(user).unstake(tokenId);
+        await tx.wait();
+        log("\n🎉 Unstaked token", tokenId);
+
+        // check that the effective stake is the correct one
+        const effectiveStakePostUnstake = await stargateContract.getDelegatorsEffectiveStake(
+            validator.address,
+            1n
+        );
+        expect(effectiveStakePostUnstake).to.be.equal(0);
+    });
+    it("should have the correct effective stake if the protocol is not in transition period", async () => {
+        await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 0);
+
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        // delegate the token to the validator
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated token to validator", validator.address);
+
+        // check that the effective stake is the correct one
+        const effectiveStakeFirstPeriod = await stargateContract.getDelegatorsEffectiveStake(
+            validator.address,
+            1n
+        );
+        expect(effectiveStakeFirstPeriod).to.be.equal(0);
+
+        const effectiveStakeSecondPeriod = await stargateContract.getDelegatorsEffectiveStake(
+            validator.address,
+            2n
+        );
+        expect(effectiveStakeSecondPeriod).to.be.equal(
+            (levelSpec.vetAmountRequiredToStake * levelSpec.scaledRewardFactor) / 100n
+        );
+    });
+    it("should not revert by underflowing when delegating to another validator after a validator exits", async () => {
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+
+        await stargateContract.connect(user).delegate(tokenId, validator.address);
+
+        await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 5);
+
+        await stargateContract.connect(user).requestDelegationExit(tokenId);
+
+        await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 15);
+
+        await protocolStakerMock.helper__setValidatorStatus(
+            validator.address,
+            VALIDATOR_STATUS_EXITED
+        );
+
+        await expect(stargateContract.connect(user).delegate(tokenId, otherValidator.address)).to
+            .not.be.reverted;
     });
 });

@@ -18,7 +18,6 @@ describe("shard-u3: Stargate: Delegation Status", () => {
     let protocolStakerMock: ProtocolStakerMock;
     let deployer: HardhatEthersSigner;
     let user: HardhatEthersSigner;
-    let otherAccounts: HardhatEthersSigner[];
     let tx: TransactionResponse;
 
     const VALIDATOR_STATUS_QUEUED = 1;
@@ -45,7 +44,6 @@ describe("shard-u3: Stargate: Delegation Status", () => {
         stargateContract = contracts.stargateContract;
         stargateNFTContract = contracts.stargateNFTContract;
         user = contracts.otherAccounts[0];
-        otherAccounts = contracts.otherAccounts;
 
         // add default validator
         tx = await protocolStakerMock.addValidation(deployer.address, 120);

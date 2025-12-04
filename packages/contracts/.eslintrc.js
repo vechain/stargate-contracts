@@ -2,17 +2,13 @@
 module.exports = {
     root: true,
     extends: ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
-    plugins: ["@typescript-eslint", "only-warn"],
+    plugins: ["@typescript-eslint"],
     env: {
         node: true,
         mocha: true,
     },
-    settings: {
-        "import/resolver": {
-            typescript: {
-                project: "tsconfig.json",
-            },
-        },
+    parserOptions: {
+        project: true,
     },
     ignorePatterns: [
         // Ignore dotfiles
@@ -34,7 +30,10 @@ module.exports = {
         "scripts/deploy/july_1st/",
     ],
     parser: "@typescript-eslint/parser",
-    parserOptions: {
-        project: "tsconfig.json",
+    rules: {
+        "@typescript-eslint/no-explicit-any": "off",
+        "no-unexpected-multiline": "off",
+        "@typescript-eslint/no-unused-vars": "error",
+        "prefer-const": "off",
     },
 };

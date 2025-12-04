@@ -15,7 +15,7 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Checkpoints } from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import { ITokenAuction } from "../../interfaces/ITokenAuction.sol";
-import { IStargateDelegation } from "../../deprecated/StargateDelegation/V3/IStargateDelegation.sol";
+import { IStargateDelegationV3 } from "../../deprecated/StargateDelegation/V3/IStargateDelegationV3.sol";
 import { IStargate } from "../../interfaces/IStargate.sol";
 
 /// @title DataTypes
@@ -28,7 +28,7 @@ library DataTypes {
         uint48 vthoGenerationEndTimestamp_deprecated; // this is the timestamp (in seconds) when the protocol will stop generating VTHO by holding VET (deprecated in V3 and used only as a getter)
         uint8 MAX_LEVEL_ID; // Maximum level ID
         ITokenAuction legacyNodes; // TokenAuction contract
-        IStargateDelegation stargateDelegation_deprecated; // StargateDelegation contract (not used anymore from V3)
+        IStargateDelegationV3 stargateDelegation_deprecated; // StargateDelegation contract (not used anymore from V3)
         IERC20 vthoToken; // VTHO token contract
         uint256 currentTokenId; // Token tracking: Current token ID
         string baseTokenURI; // Base URI for the token metadata

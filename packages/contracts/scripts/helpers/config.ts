@@ -3,7 +3,6 @@ import fs from "fs";
 import path from "path";
 import { ethers, network } from "hardhat";
 import { AppConfig, getConfig, getContractsConfig } from "@repo/config";
-import { Network } from "@repo/constants";
 import { deployAll } from "../deploy/deploy";
 import { GenesisBlock } from "../thor-solo/waitForThorSolo";
 import { ZERO_ADDRESS } from "@vechain/sdk-core";
@@ -15,8 +14,7 @@ export const isTestnetNetwork = network.name === "vechain_testnet";
 export const isDevnetNetwork = network.name === "vechain_devnet";
 
 export const overrideLocalConfigWithNewContracts = async (
-    contracts: Awaited<ReturnType<typeof deployAll>>,
-    network: Network
+    contracts: Awaited<ReturnType<typeof deployAll>>
 ) => {
     const newConfig: AppConfig = {
         ...config,

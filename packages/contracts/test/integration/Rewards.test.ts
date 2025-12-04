@@ -10,6 +10,7 @@ import {
     getOrDeployContracts,
     stakeAndMatureNFT,
     exitDelegation,
+    log,
 } from "../helpers";
 import { expect } from "chai";
 
@@ -711,5 +712,150 @@ describe("shard-i3: Stargate: Rewards", () => {
 
         const vthoBalanceAfterClaim = await mockedVthoToken.balanceOf(user);
         expect(vthoBalanceAfterClaim).to.be.greaterThan(vthoBalanceBeforeClaim);
+    });
+
+    it("should return the correct claimable periods when the delegation is exited and the user claims the rewards", async () => {
+        const user = otherAccounts[0];
+        const otherUser = otherAccounts[1];
+        const levelId = 1;
+        const { tokenId: userTokenId } = await stakeAndMatureNFT(
+            user,
+            levelId,
+            stargateNFTContract,
+            stargateContract
+        );
+        const { tokenId: otherUserTokenId } = await stakeAndMatureNFT(
+            otherUser,
+            levelId,
+            stargateNFTContract,
+            stargateContract
+        );
+
+        log("User token minted with id: ", userTokenId);
+        log("Other user token minted with id: ", otherUserTokenId);
+
+        tx = await stargateContract.connect(user).delegate(userTokenId, validator);
+        await tx.wait();
+        log("User delegated token with id: ", userTokenId);
+
+        const [periodDuration, startBlock, ,] =
+            await protocolStakerContract.getValidationPeriodDetails(deployer.address);
+
+        log(
+            "Complete 5 periods, we are in period 1 so after this we will have completed 6 period, and we will be in period 7"
+        );
+        await fastForwardValidatorPeriods(Number(periodDuration), Number(startBlock), 5);
+
+        tx = await stargateContract.connect(otherUser).delegate(otherUserTokenId, validator);
+        await tx.wait();
+        log("Other user delegated token with id: ", otherUserTokenId);
+
+        log(
+            "Complete 5 periods, we are in period 7 so after this we will have completed 12 periods, and we will be in period 13"
+        );
+        await fastForwardValidatorPeriods(Number(periodDuration), Number(startBlock), 5);
+
+        log("Request to exit the delegation");
+        tx = await stargateContract.connect(user).requestDelegationExit(userTokenId);
+        await tx.wait();
+        log("User requested to exit the delegation with id: ", userTokenId);
+
+        log("Advance to the next period, now we are in period 14");
+        await fastForwardValidatorPeriods(Number(periodDuration), Number(startBlock), 0);
+
+        // claim user rewards
+        tx = await stargateContract.connect(user).claimRewards(userTokenId);
+        await tx.wait();
+        log("User claimed rewards with id: ", userTokenId);
+
+        log(
+            "Complete 5 periods we are in period 14 so after this we will have completed 19 periods, and we will be in period 20"
+        );
+        await fastForwardValidatorPeriods(Number(periodDuration), Number(startBlock), 5);
+
+        const [firstClaimablePeriod, lastClaimablePeriod] =
+            await stargateContract.claimableDelegationPeriods(userTokenId);
+        expect(firstClaimablePeriod).to.be.equal(0);
+        expect(lastClaimablePeriod).to.be.equal(0);
+        const claimableRewardsUser =
+            await stargateContract["claimableRewards(uint256)"](userTokenId);
+        expect(claimableRewardsUser).to.equal(0);
+        const [firstClaimablePeriodOtherUser, lastClaimablePeriodOtherUser] =
+            await stargateContract.claimableDelegationPeriods(otherUserTokenId);
+        // Other user started delegating in period 7 so the first claimable period is 8
+        expect(firstClaimablePeriodOtherUser).to.be.equal(8);
+        // There is 19 periods completed
+        expect(lastClaimablePeriodOtherUser).to.be.equal(19);
+    });
+    it("should return the correct claimable periods when the delegation is exited and the user claims the rewards", async () => {
+        const user = otherAccounts[0];
+        const otherUser = otherAccounts[1];
+        const levelId = 1;
+        const { tokenId: userTokenId } = await stakeAndMatureNFT(
+            user,
+            levelId,
+            stargateNFTContract,
+            stargateContract
+        );
+        const { tokenId: otherUserTokenId } = await stakeAndMatureNFT(
+            otherUser,
+            levelId,
+            stargateNFTContract,
+            stargateContract
+        );
+
+        log("User token minted with id: ", userTokenId);
+        log("Other user token minted with id: ", otherUserTokenId);
+
+        tx = await stargateContract.connect(user).delegate(userTokenId, validator);
+        await tx.wait();
+        log("User delegated token with id: ", userTokenId);
+
+        const [periodDuration, startBlock, ,] =
+            await protocolStakerContract.getValidationPeriodDetails(deployer.address);
+
+        log(
+            "Complete 5 periods, we are in period 1 so after this we will have completed 6 period, and we will be in period 7"
+        );
+        await fastForwardValidatorPeriods(Number(periodDuration), Number(startBlock), 5);
+
+        tx = await stargateContract.connect(otherUser).delegate(otherUserTokenId, validator);
+        await tx.wait();
+        log("Other user delegated token with id: ", otherUserTokenId);
+
+        log(
+            "Complete 5 periods, we are in period 7 so after this we will have completed 12 periods, and we will be in period 13"
+        );
+        await fastForwardValidatorPeriods(Number(periodDuration), Number(startBlock), 5);
+
+        log("Request to exit the delegation");
+        tx = await stargateContract.connect(user).requestDelegationExit(userTokenId);
+        await tx.wait();
+        log("User requested to exit the delegation with id: ", userTokenId);
+
+        log("Advance to the next period, now we are in period 14");
+        await fastForwardValidatorPeriods(Number(periodDuration), Number(startBlock), 0);
+
+        // // claim user rewards
+        tx = await stargateContract.connect(user).unstake(userTokenId);
+        await tx.wait();
+        log("User unstaked the token with id: ", userTokenId);
+
+        log(
+            "Complete 5 periods we are in period 15 so after this we will have completed 19 periods, and we will be in period 20"
+        );
+        await fastForwardValidatorPeriods(Number(periodDuration), Number(startBlock), 5);
+
+        const [firstClaimablePeriod, lastClaimablePeriod] =
+            await stargateContract.claimableDelegationPeriods(userTokenId);
+        expect(firstClaimablePeriod).to.be.equal(0);
+        expect(lastClaimablePeriod).to.be.equal(0);
+
+        const [firstClaimablePeriodOtherUser, lastClaimablePeriodOtherUser] =
+            await stargateContract.claimableDelegationPeriods(otherUserTokenId);
+        // Other user started delegating in period 7 so the first claimable period is 8
+        expect(firstClaimablePeriodOtherUser).to.be.equal(8);
+        // There is 19 periods completed
+        expect(lastClaimablePeriodOtherUser).to.be.equal(19);
     });
 });
