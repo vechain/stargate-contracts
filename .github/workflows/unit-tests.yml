@@ -1,13 +1,15 @@
-name: Unit Testing
+name: Hardhat Unit Testing
 
 on:
   workflow_dispatch:
   pull_request:
     branches:
       - main
+      - develop
   push:
     branches:
       - main
+      - develop
 
 jobs:
   check-changes:
@@ -17,11 +19,11 @@ jobs:
       contracts-changed: ${{ steps.changes.outputs.contracts }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+        uses: actions/checkout@v3
 
       - name: Check for changes
         id: changes
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        uses: dorny/paths-filter@v3
         with:
           filters: |
             contracts:
@@ -38,52 +40,43 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - shard: shard1000
-            label: NodeManagement
-          - shard: shard1001
-            label: NodeManagementV3
-          - shard: shard100
-            label: StargateDel Deployment
-          - shard: shard101
-            label: StargateDel Upgradeability
-          - shard: shard102
-            label: StargateDel Settings
-          - shard: shard103
-            label: StargateDel Delegation
-          - shard: shard104
-            label: StargateDel Rewards
-          - shard: shard105
-            label: StargateDel NodeManagement
-          - shard: shard106
-            label: StargateDel Lost Rewards
-          - shard: shard1
-            label: StargateNFT Deployment
-          - shard: shard2
-            label: StargateNFT Pausability
-          - shard: shard3
-            label: StargateNFT Upgradeability
-          - shard: shard4
-            label: StargateNFT Settings
-          - shard: shard5
+          - shard: shard-u1
+            label: Stargate Staking
+          - shard: shard-u2
+            label: Stargate Delegation
+          - shard: shard-u3
+            label: Stargate Delegation Status
+          - shard: shard-u4
+            label: Stargate Rewards
+          - shard: shard-u5
+            label: Stargate Pausing
+          - shard: shard-u6
+            label: Stargate Clock
+          - shard: shard-u7
+            label: Stargate Contracts
+          - shard: shard-u101
             label: StargateNFT Levels
-          - shard: shard6
-            label: StargateNFT Compatibility
-          - shard: shard7
-            label: StargateNFT Staking
-          - shard: shard8
-            label: StargateNFT Stake and Delegate
-          - shard: shard9
-            label: StargateNFT Migration
-          - shard: shard10
-            label: StargateNFT Whitelisted Migration
-          - shard: shard11
-            label: StargateNFT Unstaking
-          - shard: shard12
-            label: StargateNFT Base Rewards
-          - shard: shard13
-            label: StargateNFT Rewards Auto Claiming
-          - shard: shard10000
-            label: Reentrancy Attacks
+          - shard: shard-u102
+            label: StargateNFT MintingLogic
+          - shard: shard-u103
+            label: StargateNFT Boost
+          - shard: shard-u104
+            label: StargateNFT Migrate
+          - shard: shard-u105
+            label: StargateNFT Token Manager
+          - shard: shard-u106
+            label: StargateNFT Settings
+          - shard: shard-u107
+            label: StargateNFT Token
+          - shard: shard-u108
+            label: StargateNFT Pausing
+          - shard: shard-u109
+            label: StargateNFT Getters
+          - shard: shard-u110
+            label: StargateNFT Callback
+          - shard: shard-u111
+            label: StargateNFT Initialize
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -116,75 +109,5 @@ jobs:
       - name: Set shard environment variable
         run: echo "SHARD=${{ matrix.shard }}" >> $GITHUB_ENV
 
-      - name: Run tests and coverage
-        run: yarn test:coverage:solidity
-
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-${{ matrix.shard }}
-          path: packages/contracts/coverage/coverage-final.json
-
-  upload-merged-coverage:
-    name: Upload Merged Coverage Reports
-    runs-on: ubuntu-latest
-    needs: run-contracts-tests
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Use Node v20
-        uses: actions/setup-node@v3
-        with:
-          node-version-file: .nvmrc
-          cache: "yarn"
-
-      - name: Cache node_modules
-        uses: actions/cache@v3
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/yarn.lock') }}
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Download coverage artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: coverage-*
-          path: packages/contracts/coverage-shards
-
-      - name: Debug downloaded artifacts
-        run: |
-          ls -la packages/contracts/coverage-shards
-
-      - name: Merge coverage reports
-        working-directory: packages/contracts
-        run: npx ts-node scripts/helpers/merge-coverage.ts
-
-      - name: Create .nyc_output directory
-        run: mkdir -p packages/contracts/.nyc_output
-
-      - name: Generate final coverage report
-        working-directory: packages/contracts
-        run: yarn coverage:report
-
-      - name: Upload coverage report to Codecov
-        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4
-        with:
-          directory: packages/contracts/coverage/
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-  # run-slither:
-  #   name: Slither Analysis
-  #   uses: vechain/github-actions/.github/workflows/slither.yaml@fix/slither-edge-cases
-  #   needs: check-changes
-  #   if: needs.check-changes.outputs.contracts-changed == 'true'
-  #   with:
-  #     target: "packages/contracts/"
-  #     solc-version: "0.8.20"
-  #     fail-on: none
-  #     slither-args: '--filter-paths "(openzeppelin|mocks|interfaces|deprecated|templates|NodeManagement/NodeManagementV1.sol|NodeManagement/NodeManagementV2.sol)" --exclude-informational --exclude-optimization --checklist --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/'
+      - name: Run tests
+        run: npx dotenv -e .env.example -- yarn contracts:test:unit

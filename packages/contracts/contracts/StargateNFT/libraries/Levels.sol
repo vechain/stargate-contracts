@@ -11,10 +11,10 @@
 
 pragma solidity 0.8.20;
 
-import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
-import {Clock} from "./Clock.sol";
-import {DataTypes} from "./DataTypes.sol";
-import {Errors} from "./Errors.sol";
+import { Checkpoints } from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+import { Clock } from "./Clock.sol";
+import { DataTypes } from "./DataTypes.sol";
+import { Errors } from "./Errors.sol";
 
 /// @title Levels
 /// @notice Library for the StargateNFT contract to manage token levels
@@ -60,6 +60,18 @@ library Levels {
      * @param newCap The new cap
      */
     event LevelCapUpdated(uint8 indexed levelId, uint32 oldCap, uint32 newCap);
+
+    /**
+     * @notice Emitted when the boost price per block of a token level is updated
+     * @param levelId The ID of the level boost price per block that was updated
+     * @param oldBoostPricePerBlock The old boost price per block
+     * @param newBoostPricePerBlock The new boost price per block
+     */
+    event LevelBoostPricePerBlockUpdated(
+        uint8 indexed levelId,
+        uint256 oldBoostPricePerBlock,
+        uint256 newBoostPricePerBlock
+    );
 
     // ------------------ Setters ------------------ //
 
@@ -112,52 +124,17 @@ library Levels {
         emit LevelCapUpdated($.MAX_LEVEL_ID, 0, _levelAndSupply.cap);
     }
 
-    /// @notice Updates a token level
+    /// @notice Updates the boost price per block for a token level
     /// @param _levelId - The ID of the level to update
-    /// @param _name - The name of the level
-    /// @param _isX - Whether the level is an X level
-    /// @param _maturityBlocks - The number of blocks before the level can earn rewards
-    /// @param _scaledRewardFactor - The scaled reward multiplier for the level
-    /// @param _vetAmountRequiredToStake - The amount of VET required to stake for the level
+    /// @param _boostPricePerBlock - The new boost price per block for the level
     /// @dev Only the LEVEL_OPERATOR_ROLE can call this function
-    /// Use carefully, all fields are updated,
-    /// if you want to update only some fields, fetch the level first, then update the fields you need to change
-    /// A new level is valid if:
-    /// - the id exists
-    /// - name is not empty
-    /// - vetAmountRequiredToStake is greater than 0
-    /// Emits a {IStargateNFT.LevelUpdated} event
-    function updateLevel(
+    /// Emits a {IStargateNFT.LevelBoostPricePerBlockUpdated} event
+    function updateLevelBoostPricePerBlock(
         DataTypes.StargateNFTStorage storage $,
         uint8 _levelId,
-        string memory _name,
-        bool _isX,
-        uint64 _maturityBlocks,
-        uint64 _scaledRewardFactor,
-        uint256 _vetAmountRequiredToStake
+        uint256 _boostPricePerBlock
     ) external {
-        _updateLevel(
-            $,
-            _levelId,
-            _name,
-            _isX,
-            _maturityBlocks,
-            _scaledRewardFactor,
-            _vetAmountRequiredToStake
-        );
-    }
-
-    /// @notice Updates the cap for a token level
-    /// @param _levelId - The ID of the level to update
-    /// @param _cap - The new cap for the level
-    /// @dev Only the LEVEL_OPERATOR_ROLE can call this function
-    /// Emits a {IStargateNFT.LevelCapUpdated} event
-    function updateLevelCap(
-        DataTypes.StargateNFTStorage storage $,
-        uint8 _levelId,
-        uint32 _cap
-    ) external {
-        _updateLevelCap($, _levelId, _cap);
+        _updateLevelBoostPricePerBlock($, _levelId, _boostPricePerBlock);
     }
 
     // ------------------ Getters ------------------ //
@@ -210,11 +187,6 @@ library Levels {
         DataTypes.StargateNFTStorage storage $,
         uint8 _levelId
     ) external view returns (uint208 circulating, uint32 cap) {
-        // Validate level exists
-        if (!_levelExists($, $.levels[_levelId].id)) {
-            revert Errors.LevelNotFound(_levelId);
-        }
-
         circulating = _getCirculatingSupply($, _levelId);
         cap = $.cap[_levelId];
     }
@@ -261,59 +233,23 @@ library Levels {
         }
     }
 
-    /// @dev See {updateLevel}
-    function _updateLevel(
+    /// @dev See {updateLevelBoostPricePerBlock}
+    function _updateLevelBoostPricePerBlock(
         DataTypes.StargateNFTStorage storage $,
         uint8 _levelId,
-        string memory _name,
-        bool _isX,
-        uint64 _maturityBlocks,
-        uint64 _scaledRewardFactor,
-        uint256 _vetAmountRequiredToStake
+        uint256 _boostPricePerBlock
     ) internal {
         // Validate level exists
         if (!_levelExists($, $.levels[_levelId].id)) {
             revert Errors.LevelNotFound(_levelId);
         }
 
-        $.levels[_levelId].name = _name;
-        $.levels[_levelId].isX = _isX;
-        $.levels[_levelId].maturityBlocks = _maturityBlocks;
-        $.levels[_levelId].scaledRewardFactor = _scaledRewardFactor;
-        $.levels[_levelId].vetAmountRequiredToStake = _vetAmountRequiredToStake;
-
-        // Validate level fields
-        _validateLevel($.levels[_levelId]);
-
-        emit LevelUpdated(
+        emit LevelBoostPricePerBlockUpdated(
             _levelId,
-            _name,
-            _isX,
-            _maturityBlocks,
-            _scaledRewardFactor,
-            _vetAmountRequiredToStake
+            $.boostPricePerBlock[_levelId],
+            _boostPricePerBlock
         );
-    }
-
-    /// @dev See {updateLevelCap}
-    function _updateLevelCap(
-        DataTypes.StargateNFTStorage storage $,
-        uint8 _levelId,
-        uint32 _cap
-    ) internal {
-        // Validate level exists
-        if (!_levelExists($, $.levels[_levelId].id)) {
-            revert Errors.LevelNotFound(_levelId);
-        }
-
-        // Validate new cap is greater than or equal to current circulating supply
-        if (_getCirculatingSupply($, _levelId) > _cap) {
-            revert Errors.CirculatingSupplyGreaterThanCap();
-        }
-
-        // Update cap
-        emit LevelCapUpdated(_levelId, $.cap[_levelId], _cap);
-        $.cap[_levelId] = _cap;
+        $.boostPricePerBlock[_levelId] = _boostPricePerBlock;
     }
 
     /// @dev See {getLevelIds}
@@ -350,6 +286,10 @@ library Levels {
         DataTypes.StargateNFTStorage storage $,
         uint8 _levelId
     ) internal view returns (uint208) {
+        // Validate level exists
+        if (!_levelExists($, _levelId)) {
+            revert Errors.LevelNotFound(_levelId);
+        }
         return $.circulatingSupply[_levelId].latest();
     }
 

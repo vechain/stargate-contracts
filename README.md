@@ -1,49 +1,12 @@
 
 ## Overview
 
+Stargate is VeChain’s new staking platform, designed to transform how users participate in the VeChainThor network. Users can stake VET tokens, pick a validator of the protocol (by delegating their tokens to it), earn rewards for every block produced by the validator and unstake their tokens at any time.
+Their staking position is represented by an NFT. In order to be able to delegate to a validator, the NFT must be matured, which means that a specific amount of blocks must pass since the NFT was minted.
+The NFT can be boosted to skip the maturity period by paying a fee (VTHO).
 [![codecov](https://codecov.io/gh/vechain/stargate-contracts/graph/badge.svg?token=3OMYFKUMS9)](https://app.codecov.io/gh/vechain/stargate-contracts)![Zizmor Checks](https://github.com/vechain/stargate-contracts/actions/workflows/scan-workflows.yaml/badge.svg?branch=main&event=push)
 
-```
-       ✦     *        .         ✶         *        .       ✦       .
- ✦   _______..___________.    ___      .______        _______      ___   .___________. _______  ✦
-    /       ||           |   /   \     |   _  \      /  _____|    /   \  |           ||   ____| *
-   |   (----``---|  |----`  /  ^  \    |  |_)  |    |  |  __     /  ^  \ `---|  |----`|  |__     .
-    \   \        |  |      /  /_\  \   |      /     |  | |_ |   /  /_\  \    |  |     |   __|    ✶
-.----)   |       |  |     /  _____  \  |  |\  \----.|  |__| |  /  _____  \   |  |     |  |____  *
-|_______/        |__|    /__/     \__\ | _| `._____| \______| /__/     \__\  |__|     |_______| ✦
-        *       .      ✦      *      .        ✶       *      ✦       .       *        ✶
-```
-
-Contracts are located in the `packages/contracts/contracts` folder.
-
-Docs: [https://docs.stargate.vechain.org/](https://docs.stargate.vechain.org/for-developers/contracts)
-
-Audit done by **Hacken** and is available in the root of the repo (`Hacken_Vechain Foundation_[SCA] VeChain _ Stargate _ May 2025 _P-2025-1669_3_20250630 10_14.pdf`).
-
-## Stargate
-
-Stargate is VeChain’s new staking platform, designed to transform how users participate in the VeChainThor network. Users can stake VET tokens, and use those to delegate them to a validator node of the protocol.
-Their staking position is represented by an NFT.
-
-This repo contains the StargateNFT, StargateDelegation and NodeManagementV3 contracts, plus a set of utility and mock contracts.
-
-## Mainnet Addresses
-
-```
-"StargateNFT": "0x1856c533ac2d94340aaa8544d35a5c1d4a21dee7",
-"StargateDelegation": "0x4cb1c9ef05b529c093371264fab2c93cc6cddb0e",
-"VeChain Nodes (Legacy)": "0xb81E9C5f9644Dec9e5e3Cac86b4461A222072302",
-"NodeManagementV3": "0xB0EF9D89C6b49CbA6BBF86Bf2FDf0Eee4968c6AB",
-```
-
-## Testnet Addresses
-
-```
-"StargateNFT": "0x1ec1d168574603ec35b9d229843b7c2b44bcb770",
-"StargateDelegation": "0x7240e3bc0d26431512d5b67dbd26d199205bffe8",
-"VeChain Nodes (Legacy)": "0x0747b39abc0de3d11c8ddfe2e7eed00aaa8d475c",
-"NodeManagementV3": "0x8bcbfc20ee39c94f4e60afc5d78c402f70b4f3b2",
-```
+The NFTs are minted and burned by the Stargate contract, which is the entry point for all interactions with the protocol.
 
 ## Requirements
 
@@ -52,75 +15,6 @@ Ensure your development environment is set up with the following:
 - **Node.js (v20 or later):** [Download here](https://nodejs.org/en/download/package-manager) 📥
 - **Yarn:** [Install here](https://classic.yarnpkg.com/lang/en/docs/install/#mac-stable) 🧶
 - **Docker (for containerization):** [Get Docker](https://docs.docker.com/get-docker/) 🐳
-- **Hardhat (for smart contracts):** [Getting Started with Hardhat](https://hardhat.org/hardhat-runner/docs/getting-started) ⛑️
-
-### Getting Started
-
-Clone the repository, then install dependencies:
-
-```bash
-nvm use # Align your node version
-```
-
-```bash
-yarn # Run this at the root level of the project
-```
-
-Place your `.env` file in the root folder. Copy `.env.example` and rename it to `.env`, then change values to your own. When running on Solo (see next section) you can re-use the values from the example file.
-
-## Running on Solo Network Locally (docker needed!) 🔧
-
-### Spin up the Solo Network in a docker container
-
-```bash
-  yarn solo-up
-```
-
-### Spin down the Solo Network
-
-```bash
-  yarn solo-down
-```
-
-### Deploy contracts
-
-You can deploy the contracts without starting the frontend by running the following command:
-
-```bash
-  yarn contracts:deploy:solo
-```
-
-This command will redeploy the contracts BUT WILL NOT save the addresses in the `packages/config/local.ts` file. You need to do that manually.
-
-To change the network you can do as follows:
-
-```bash
-  yarn contracts:deploy:testnet
-```
-
-Notice: After deploying the contracts you will need to manually deposit VTHO inside the StargateDelegation contract, otherwise you will not be able to claim delegation rewards or re-delegate.
-
-### Run tests
-
-Note that tests will run on the Hardhat network.
-
-```bash
-  yarn contracts:test
-```
-
-### Run tests with coverage
-
-```bash
-  yarn contracts:test:coverage
-```
-
-Open the coverage report in the `packages/contracts/coverage/index.html` file in your browser to see the test coverage.
-
-### Generate documentation
-
-```bash
-  yarn contracts:generate-docs
-```
 
 ## Project Structure
 
@@ -139,3 +33,183 @@ Smart contracts in Solidity, managed with Hardhat for deployment on the Vechain 
 ### Packages 📦
 
 Shared configurations and utility functions to unify and simplify the development process.
+
+### Getting Started
+
+Clone the repository, then install dependencies:
+
+```bash
+nvm use # Align your node version
+```
+
+```bash
+yarn # Run this at the root level of the project
+```
+
+```bash
+cp .env.example .env # copy the example file to the .env file containig base mnemonic
+```
+
+```bash
+yarn solo-up # spin up a local vechain thor network (thor-solo)
+```
+
+```bash
+yarn dev # deploy the contracts on the local thor-solo network and start the frontend
+```
+
+If you want to start the frontend or deploy the contracts against other networks, you can avoid starting the solo network, and just run the dev command against the network you want to use.
+
+```bash
+yarn dev:{network} # start the frontend on the devnet/testnet/mainnet network
+```
+
+If you need to redeploy the contracts you can either stop the solo network by running `yarn solo-down` and then start it again and run `yarn dev` again.
+
+Optionally you can also delete the `stargateNFTContractAddress` address from the config file in the `packages/config/local.ts` (or testnet/mainnet.ts based on the network you are using) file and run the `yarn dev` command again.
+
+## Smart contracts
+
+### Compile contract and generate artifacts
+
+```bash
+  yarn contracts:compile
+```
+
+### Run tests
+
+#### Intragetration tests
+
+Note that tests will run on the thor solo network. The test environment will be automatically started by the command.
+
+```bash
+  yarn contracts:test:integration
+  yarn contracts:test:integration:verbose ## to see the logs
+```
+
+#### Unit tests
+
+Note that tests will run on the hardhat network.
+
+```bash
+  yarn contracts:test:unit
+  yarn contracts:test:unit:verbose ## to see the logs
+```
+
+##### Run tests with coverage
+
+Only unit tests have coverage option.
+
+```bash
+  yarn contracts:test:unit:coverage
+```
+
+Open the coverage report in the `packages/contracts/coverage/index.html` file in your browser to see the test coverage.
+
+### Generate documentation
+
+```bash
+  yarn contracts:generate-docs
+```
+
+### Deploy contracts only (no frontend)
+
+You can deploy the contracts without starting the frontend by running the following command:
+
+```bash
+  yarn contracts:deploy:{network}
+```
+
+This command will redeploy the contracts BUT WILL NOT save the addresses in the `packages/config/local.ts` file. You need to do that manually.
+
+### Spin down the Solo Network
+
+```bash
+  yarn solo-down
+```
+
+### Clean docker solo network
+
+```bash
+  yarn solo-clean
+```
+
+### Fast forward periods and mine blocks
+
+There are 2 scripts that can be used to mine any amount of blocks and fast forward any amount periods for a given validator.
+The scripts work only against thor-solo.
+
+#### Mine blocks
+
+Run the following command to advance a desired amount of blocks in the thor-solo network:
+
+`BLOCKS=10 yarn solo:mine-blocks`
+
+#### Fast forward validator periods
+
+`PERIODS=1 yarn solo:fast-forward-periods`
+
+or specify the validator address:
+
+`VALIDATOR_ADDRESS=0x PERIODS=1 yarn solo:fast-forward-periods`
+
+NB: only 1 validator is available in the thor-solo network.
+
+### Slither
+
+Slither is running in a gha workflow every time there is any changes in the contracts folder.
+It will report any issues found in the contracts.
+
+It is possible to mark false positives by updating the `slither.config.json` file. Eg:
+
+````json
+
+```json
+{
+  "suppressions": [
+    {
+      "check": "reentrancy-eth",
+      "file": "contracts/Stargate.sol",
+      "function": "executeTransaction(uint256)",
+      "reason": "CEI done; false positive"
+    }
+  ]
+}
+````
+
+It is possible to:
+
+- Mark an entire function as False Positive
+- Mark a specific line of code as False Positive
+- Mark a number of lines as False Positive
+
+### Verify contracts
+
+Optionally verify your smart contracts on Sourcify. This allows 3rd parties to view and independently verify all of the following:
+
+- Source code
+- Metadata
+- Contract ABI
+- Contract Bytecode
+- Contract transaction ID
+
+After deploying `SimpleStorage`, the console will print the address of the deployed contract. You can verify the contract on [sourcify.eth](https://repo.sourcify.dev/select-contract/):
+
+```bash
+yarn contracts:verify:mainnet <contract-address> <contract-name>
+```
+
+Read more about the verification process in the [packages/contracts/scripts/verify/README.md](packages/contracts/scripts/verify/README.md) file.
+
+## Frontend App deployment
+
+The frontend app is deployed using Vercel. The deployment is triggered automatically when a new Release is created on the main branch (please look at the [Release](https://github.com/vechain/stargate/releases) section).
+
+- When something is pushed to develop the "Devnet" environment is deployed.
+- When something is pushed to main the "Testnet" and "Beta" environments are deployed.
+- When a release is created on the main branch the "Mainnet" environment is deployed.
+
+In order to successfully deploy the frontend app in production, the following steps need to be followed:
+
+1. Create a pr where the version in the `apps/frontend/package.json` file is updated. It should be a patch version bump, unless there are breaking changes, in which case it should be a major version bump. The version should be in the format `x.x.x`, where `x` is a number.
+2. Once the pr is merged, create a new release on the main branch with the same version as the one in the pr. This will trigger the deployment of the frontend app to Vercel through the `on-production-release` workflow.

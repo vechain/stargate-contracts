@@ -1,6 +1,6 @@
 export type DeployUpgradeOptions = {
-  libraries?: ({ [libraryName: string]: string } | undefined)[];
-  versions?: (number | undefined)[];
-  logOutput?: boolean;
-  forceInitialization?: boolean[];
+    libraries?: ({ [libraryName: string]: string } | undefined)[];
+    versions?: (number | undefined)[];
+    logOutput?: boolean;
+    forceInitialization?: boolean[];
 };

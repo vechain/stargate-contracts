@@ -1,8 +1,14 @@
 import testnetConfig from "./testnet";
 import mainnetConfig from "./mainnet";
 import localConfig from "./local";
+import devnetConfig from "./devnet";
 import { EnvConfig, getContractsConfig } from "./contracts";
 import { Network } from "@repo/constants";
+
+export type CyclePeriodOption = {
+  value: number;
+  label: string;
+};
 
 export type AppConfig = {
   environment: EnvConfig;
@@ -12,10 +18,14 @@ export type AppConfig = {
   legacyNodesContractAddress: string;
   stargateNFTContractAddress: string;
   stargateDelegationContractAddress: string;
+  stargateContractAddress: string;
   nodeManagementContractAddress: string;
+  protocolStakerContractAddress: string;
+  protocolParamsContractAddress: string;
   nodeUrl: string;
   indexerUrl: string;
   network: Network;
+  cyclePeriods: CyclePeriodOption[];
 };
 
 export const getConfig = (env?: EnvConfig): AppConfig => {
@@ -28,6 +38,7 @@ export const getConfig = (env?: EnvConfig): AppConfig => {
   if (appEnv === "testnet") return testnetConfig;
   if (appEnv === "mainnet") return mainnetConfig;
   if (appEnv === "local") return localConfig;
+  if (appEnv === "devnet") return devnetConfig;
 
   throw new Error(`Unsupported VITE_APP_ENV ${appEnv}`);
 };

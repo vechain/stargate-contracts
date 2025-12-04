@@ -11,14 +11,14 @@
 
 pragma solidity 0.8.20;
 
-import {IStargateDelegationV2} from "./IStargateDelegationV2.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import {Time} from "@openzeppelin/contracts/utils/types/Time.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import {IStargateNFTV1} from "../../StargateNFT/V1/IStargateNFTV1.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IStargateDelegationV2 } from "./IStargateDelegationV2.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { Time } from "@openzeppelin/contracts/utils/types/Time.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import { IStargateNFTV1 } from "../../StargateNFT/V1/IStargateNFTV1.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title StargateDelegation
 /// @notice This contract allows a user that owns a StargateNFT to start delegating, accumulate VTHO rewards during the delegation period and exit delegation.

@@ -7,26 +7,24 @@ import { getConfig } from "@repo/config";
  * @param filePath - The path to the file to upload.
  * @returns The IPFS hash of the uploaded file.
  */
-export async function uploadPathToIPFS(
-  filePath: string,
-): Promise<string> {
-  try {
-    // 1. Grab IPFS service url from config
-    const config = getConfig();
-    const ipfsPinningService = config.ipfsPinningService;
+export async function uploadPathToIPFS(filePath: string): Promise<string> {
+    try {
+        // 1. Grab IPFS service url from config
+        const config = getConfig();
+        const ipfsPinningService = config.ipfsPinningService;
 
-    // 2. Make a request to the IPFS pinning service
-    const form = formData(filePath);
-    const response = await axios.post(ipfsPinningService, form, {
-      headers: form.getHeaders(),
-    });
+        // 2. Make a request to the IPFS pinning service
+        const form = formData(filePath);
+        const response = await axios.post(ipfsPinningService, form, {
+            headers: form.getHeaders(),
+        });
 
-    // 3. Return the IPFS hash from the response
-    return response.data.IpfsHash;
-  } catch (error) {
-    console.error("Error uploading file to IPFS:", error);
-    throw new Error("Upload to IPFS failed");
-  }
+        // 3. Return the IPFS hash from the response
+        return response.data.IpfsHash;
+    } catch (error) {
+        console.error("Error uploading file to IPFS:", error);
+        throw new Error("Upload to IPFS failed");
+    }
 }
 
 /**
@@ -37,12 +35,12 @@ export async function uploadPathToIPFS(
  * @returns The IPFS URL in the format 'ipfs://{cid}/{folderName}/{fileName}'.
  */
 export function toIPFSURL(cid: string, fileName?: string, folderName?: string): string {
-  let url = `ipfs://${cid}`;
-  if (folderName) {
-    url += `/${folderName}`;
-  }
-  if (fileName) {
-    url += `/${fileName}`;
-  }
-  return url;
+    let url = `ipfs://${cid}`;
+    if (folderName) {
+        url += `/${folderName}`;
+    }
+    if (fileName) {
+        url += `/${fileName}`;
+    }
+    return url;
 }

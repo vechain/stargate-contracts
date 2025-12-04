@@ -11,10 +11,10 @@
 
 pragma solidity 0.8.20;
 
-import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
-import {ClockV1 as Clock} from "./ClockV1.sol";
-import {DataTypesV1 as DataTypes} from "./DataTypesV1.sol";
-import {ErrorsV1 as Errors} from "./ErrorsV1.sol";
+import { Checkpoints } from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+import { ClockV1 as Clock } from "./ClockV1.sol";
+import { DataTypesV1 as DataTypes } from "./DataTypesV1.sol";
+import { ErrorsV1 as Errors } from "./ErrorsV1.sol";
 
 /// @title Levels
 /// @notice Library for the StargateNFT contract to manage token levels

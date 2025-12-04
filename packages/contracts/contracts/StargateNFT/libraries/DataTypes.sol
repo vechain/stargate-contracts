@@ -11,21 +11,24 @@
 
 pragma solidity 0.8.20;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
-import {ITokenAuction} from "../../interfaces/ITokenAuction.sol";
-import {IStargateDelegation} from "../../interfaces/IStargateDelegation.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Checkpoints } from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+import { ITokenAuction } from "../../interfaces/ITokenAuction.sol";
+import { IStargateDelegationV3 } from "../../deprecated/StargateDelegation/V3/IStargateDelegationV3.sol";
+import { IStargate } from "../../interfaces/IStargate.sol";
 
 /// @title DataTypes
 /// @notice Library for the StargateNFT contract to store data structure definitions used across the contract and libraries
 library DataTypes {
     using Checkpoints for Checkpoints.Trace208;
+    using EnumerableSet for EnumerableSet.UintSet;
 
     struct StargateNFTStorage {
-        uint48 vthoGenerationEndTimestamp; // this is the timestamp (in seconds) when the protocol will stop generating VTHO by holding VET
+        uint48 vthoGenerationEndTimestamp_deprecated; // this is the timestamp (in seconds) when the protocol will stop generating VTHO by holding VET (deprecated in V3 and used only as a getter)
         uint8 MAX_LEVEL_ID; // Maximum level ID
         ITokenAuction legacyNodes; // TokenAuction contract
-        IStargateDelegation stargateDelegation; // StargateDelegation contract
+        IStargateDelegationV3 stargateDelegation_deprecated; // StargateDelegation contract (not used anymore from V3)
         IERC20 vthoToken; // VTHO token contract
         uint256 currentTokenId; // Token tracking: Current token ID
         string baseTokenURI; // Base URI for the token metadata
@@ -34,7 +37,12 @@ library DataTypes {
         mapping(uint8 levelId => uint32) cap; // Token levels management: Mapping level ID to cap aka max supply
         mapping(uint256 tokenId => Token) tokens; // Token tracking: Mapping token ID to token
         mapping(uint256 tokenId => uint64) maturityPeriodEndBlock; // Token tracking: Maturity period end block
-        mapping(address => WhitelistEntry) whitelistEntries; // Token tracking: Whitelist entries for migration
+        mapping(address => WhitelistEntry) whitelistEntries_deprecated; // Token tracking: Whitelist entries for migration (deprecated in V3)
+        // ------- Version 3 ------- //
+        IStargate stargate; // Hayabusa Stargate contract
+        mapping(address => EnumerableSet.UintSet) managerToTokenIds; // Map manager address to token IDs
+        mapping(uint256 => address) tokenIdToManager; // Map token ID to manager address
+        mapping(uint8 levelId => uint256) boostPricePerBlock; // Map level ID to boost price per block
     }
 
     struct StargateNFTInitParams {
@@ -72,7 +80,7 @@ library DataTypes {
         uint8 levelId;
         uint64 mintedAtBlock;
         uint256 vetAmountStaked;
-        uint48 lastVthoClaimTimestamp;
+        uint48 lastVetGeneratedVthoClaimTimestamp_deprecated; // this is the timestamp (in seconds) when the last base VTHO reward was claimed for the token (deprecated in V3 and used only as a getter)
     }
 
     struct WhitelistEntry {
@@ -83,6 +91,13 @@ library DataTypes {
     struct WhitelistEntryInit {
         address owner;
         uint256 tokenId;
+        uint8 levelId;
+    }
+
+    struct TokenOverview {
+        uint256 id;
+        address owner;
+        address manager;
         uint8 levelId;
     }
 }

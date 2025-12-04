@@ -1,15 +1,16 @@
 import { defineConfig } from "../defineConfig";
 import { ethers } from "ethers";
-import { BLOCKS_PER_DAY } from "../type";
-import { TokenLevelId } from "../StargateNFT";
+import { BLOCKS_PER_DAY, TokenLevelId } from "../type";
 
 export function createTestnetConfig() {
   return defineConfig({
     VITE_APP_ENV: "testnet",
-    CONTRACTS_ADMIN_ADDRESS: "0xf077b491b355E64048cE21E3A6Fc4751eEeA77fa",
+    CONTRACTS_ADMIN_ADDRESS: "0xffE563D2d0B4e61CE482F54E46c44429AaB8993E",
     // Legacy contracts
-    TOKEN_AUCTION_CONTRACT_ADDRESS: "0x0000000000000000000000000000000000000000",
-    CLOCK_AUCTION_CONTRACT_ADDRESS: "0x0000000000000000000000000000000000000000",
+    TOKEN_AUCTION_CONTRACT_ADDRESS:
+      "0x0000000000000000000000000000000000000000",
+    CLOCK_AUCTION_CONTRACT_ADDRESS:
+      "0x0000000000000000000000000000000000000000",
     // Stargate delegation contract
     VTHO_REWARD_PER_BLOCK_PER_NFT_LEVEL: [
       {
@@ -56,7 +57,8 @@ export function createTestnetConfig() {
     ],
     DELEGATION_PERIOD_DURATION: 30, // 30 blocks -> 5 minutes
     VTHO_TOKEN_ADDRESS: "0x0000000000000000000000000000456E65726779",
-    STARGATE_DELEGATION_OPERATOR_ADDRESS: "0xf077b491b355E64048cE21E3A6Fc4751eEeA77fa",
+    STARGATE_DELEGATION_OPERATOR_ADDRESS:
+      "0xf077b491b355E64048cE21E3A6Fc4751eEeA77fa",
     // Stargate NFT contract
     TOKEN_COLLECTION_NAME: "StarGate Delegator Token",
     TOKEN_COLLECTION_SYMBOL: "SDT",
@@ -186,9 +188,30 @@ export function createTestnetConfig() {
       },
     ],
     LEGACY_LAST_TOKEN_ID: 15611,
-    BASE_TOKEN_URI: "ipfs://bafybeibmpgruasnoqgyemcprpkygtelvxl3b5d2bf5aqqciw6dds33yw7y/metadata/",
+    BASE_TOKEN_URI:
+      "ipfs://bafybeibmpgruasnoqgyemcprpkygtelvxl3b5d2bf5aqqciw6dds33yw7y/metadata/",
     WHITELIST_ENTRIES_V2: [], // Overwritten on deploy
     // NodeManagement contract
-    NODE_MANAGEMENT_CONTRACT_ADDRESS: "0x0000000000000000000000000000000000000000",
+    NODE_MANAGEMENT_CONTRACT_ADDRESS:
+      "0x0000000000000000000000000000000000000000",
+    PROTOCOL_STAKER_CONTRACT_ADDRESS:
+      "0x00000000000000000000000000005374616B6572",
+    MAX_CLAIMABLE_PERIODS: 832,
+    STARGATE_NFT_BOOST_LEVEL_IDS: [
+      TokenLevelId.Dawn,
+      TokenLevelId.Lightning,
+      TokenLevelId.Flash,
+      TokenLevelId.Strength,
+      TokenLevelId.Thunder,
+      TokenLevelId.Mjolnir,
+    ],
+    STARGATE_NFT_BOOST_PRICES_PER_BLOCK: [
+      539351851851852n,
+      2870370370370370n,
+      12523148148148100n,
+      75925925925925900n,
+      530092592592593000n,
+      1995370370370370000n,
+    ],
   });
 }

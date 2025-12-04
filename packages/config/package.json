@@ -9,10 +9,13 @@
     "generateMockLocalConfig"
   ],
   "dependencies": {
-    "@repo/constants": "*"
+    "@repo/constants": "*",
+    "dotenv": "^17.2.2",
+    "node-fetch": "^3.3.2"
   },
   "scripts": {
-    "check-or-generate-local-config": "ts-node ./scripts/generateMockLocalConfig.mjs"
+    "check-or-generate-local-config": "node ./scripts/generateMockLocalConfig.mjs",
+    "update-genesis": "DOTENV_CONFIG_PATH=../../.env node ./scripts/updateAppConfigNetworkGenesis.mjs"
   },
   "devDependencies": {
     "ts-node": "^10.9.2"

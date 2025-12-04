@@ -11,11 +11,12 @@
 
 pragma solidity 0.8.20;
 
-import {DataTypes} from "./DataTypes.sol";
-import {IStargateNFT} from "../../interfaces/IStargateNFT.sol";
-import {Clock} from "./Clock.sol";
-import {Errors} from "./Errors.sol";
-import {Levels} from "./Levels.sol";
+import { DataTypes } from "./DataTypes.sol";
+import { IStargateNFT } from "../../interfaces/IStargateNFT.sol";
+import { Clock } from "./Clock.sol";
+import { Errors } from "./Errors.sol";
+import { Levels } from "./Levels.sol";
+import { IStargate } from "../../interfaces/IStargate.sol";
 
 /// @title Token
 /// @notice Library for the StargateNFT contract to get the token details
@@ -51,30 +52,6 @@ library Token {
 
     // ------------------ Token Supply Getters ------------------ //
 
-    /// @notice Returns the number of normal tokens
-    /// @return count The number of normal tokens
-    function normalTokensCount(
-        DataTypes.StargateNFTStorage storage $
-    ) external view returns (uint208) {
-        uint208 count;
-        uint8[] memory levelIds = Levels._getLevelIds($);
-
-        for (uint256 i; i < levelIds.length; i++) {
-            // Get level ID
-            uint8 levelId = levelIds[i];
-
-            // Get token level spec
-            DataTypes.Level memory tokenLevelSpec = $.levels[levelId];
-
-            // Count normal tokens
-            if (!tokenLevelSpec.isX) {
-                count += Levels._getCirculatingSupply($, levelId);
-            }
-        }
-
-        return count;
-    }
-
     /// @notice Returns the number of X tokens
     /// @return count The number of X tokens
     function xTokensCount(DataTypes.StargateNFTStorage storage $) external view returns (uint208) {
@@ -109,6 +86,12 @@ library Token {
 
     /// @notice Returns an array of token IDs owned by a given address
     /// @dev Replaces the original `ownerToId` mapping which can't support multiple tokens per owner
+    /// @dev WARNING: This function contains external calls in a loop, which is flagged by static analyzers.
+    ///      This pattern is necessary due to ERC721Enumerable's token iteration model, but should be used with caution:
+    ///      1. It returns early to minimize gas usage when possible
+    ///      2. It should only be used in view functions, never in state-changing functions
+    ///      3. This approach is acceptable for off-chain queries and UI/DApp integrations
+    ///      4. For on-chain interactions, prefer using alternative data structures when possible
     /// @param _owner The address to get token IDs for
     /// @return An array of token IDs owned by the address
     // slither-disable-next-line calls-loop
@@ -117,7 +100,7 @@ library Token {
         uint256 tokenCount = IStargateNFT(address(this)).balanceOf(_owner);
 
         // If owner has no tokens, return empty array
-        if (tokenCount <= 0) {
+        if (tokenCount == 0) {
             return new uint256[](0);
         }
 
@@ -146,22 +129,6 @@ library Token {
             tokens[i] = _getToken($, tokenIds[i]);
         }
         return tokens;
-    }
-
-    /// @notice Getter relies on _idsOwnedBy, which uses balanceOf, which can revert
-    /// @dev This function is used to get all levels owned by an address
-    /// @param _owner The address to get levels for
-    /// @return levels An array of levels owned by the address
-    function levelsOwnedBy(
-        DataTypes.StargateNFTStorage storage $,
-        address _owner
-    ) external view returns (uint8[] memory) {
-        uint256[] memory tokenIds = _idsOwnedBy(_owner);
-        uint8[] memory levels = new uint8[](tokenIds.length);
-        for (uint256 i; i < tokenIds.length; i++) {
-            levels[i] = _getToken($, tokenIds[i]).levelId;
-        }
-        return levels;
     }
 
     /// @notice Getter relies on _idsOwnedBy, which uses balanceOf, which can revert
@@ -202,7 +169,7 @@ library Token {
         uint256 tokenCount = IStargateNFT(address(this)).balanceOf(_target);
 
         // If owner has no tokens, return false
-        if (tokenCount <= 0) {
+        if (tokenCount == 0) {
             return false;
         }
 
@@ -236,17 +203,6 @@ library Token {
         return _hasTokenOfType($, _target, true);
     }
 
-    /// @notice Checks if an address owns any normal (non-X) tokens
-    /// @dev Legacy compatibility function
-    /// @param _target The address to check
-    /// @return True if the address owns any normal tokens, false otherwise
-    function ownsNormalToken(
-        DataTypes.StargateNFTStorage storage $,
-        address _target
-    ) external view returns (bool) {
-        return _hasTokenOfType($, _target, false);
-    }
-
     /// @notice Checks if a token is an X token
     /// @param _tokenId The ID of the token to check
     /// @return True if the token is an X token, false otherwise
@@ -257,16 +213,6 @@ library Token {
         DataTypes.Token memory token = _getToken($, _tokenId);
         DataTypes.Level memory tokenLevelSpec = Levels._getLevel($, token.levelId);
         return tokenLevelSpec.isX;
-    }
-
-    /// @notice Checks if a token is a normal token
-    /// @param _tokenId The ID of the token to check
-    /// @return True if the token is a normal token, false otherwise
-    function isNormalToken(
-        DataTypes.StargateNFTStorage storage $,
-        uint256 _tokenId
-    ) external view returns (bool) {
-        return !isXToken($, _tokenId);
     }
 
     // ------------------ Token Detail Getters ------------------ //
@@ -331,7 +277,8 @@ library Token {
         uint256 _tokenId,
         string memory _levelId
     ) internal view returns (string memory) {
-        bool delegated = $.stargateDelegation.isDelegationActive(_tokenId);
+        bool delegated = $.stargate.getDelegationStatus(_tokenId) ==
+            IStargate.DelegationStatus.ACTIVE;
 
         return string.concat($.baseTokenURI, _levelId, delegated ? "_locked.json" : ".json");
     }
