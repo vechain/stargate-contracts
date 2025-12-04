@@ -1,8 +1,10 @@
+
 ## Overview
 
 Stargate is VeChain’s new staking platform, designed to transform how users participate in the VeChainThor network. Users can stake VET tokens, pick a validator of the protocol (by delegating their tokens to it), earn rewards for every block produced by the validator and unstake their tokens at any time.
 Their staking position is represented by an NFT. In order to be able to delegate to a validator, the NFT must be matured, which means that a specific amount of blocks must pass since the NFT was minted.
 The NFT can be boosted to skip the maturity period by paying a fee (VTHO).
+[![codecov](https://codecov.io/gh/vechain/stargate-contracts/graph/badge.svg?token=3OMYFKUMS9)](https://app.codecov.io/gh/vechain/stargate-contracts)![Zizmor Checks](https://github.com/vechain/stargate-contracts/actions/workflows/scan-workflows.yaml/badge.svg?branch=main&event=push)
 
 The NFTs are minted and burned by the Stargate contract, which is the entry point for all interactions with the protocol.
 
