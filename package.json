@@ -15,8 +15,9 @@
     "format:contracts:write": "turbo format:write --filter=contracts",
     "lint": "turbo lint",
     "lint:contracts": "turbo lint --filter=contracts",
+    "lint:frontend": "turbo lint --filter=frontend",
+    "ts-check": "turbo ts-check",
     "clean": "turbo clean",
-    "purge": "turbo purge",
     "dev": "yarn && dotenv -v VITE_APP_ENV=local -- turbo dev --",
     "dev:devnet": "yarn && dotenv -v VITE_APP_ENV=devnet -e .env -- turbo dev:devnet --",
     "dev:testnet": "yarn && dotenv -v VITE_APP_ENV=testnet -e .env -- turbo dev:testnet --",
@@ -77,10 +78,15 @@
     "contracts:hayabusa-dryrun:prepare-environment": "dotenv -v VITE_APP_ENV=local -- turbo hayabusa-dryrun:prepare-environment --filter=contracts",
     "contracts:get-block-timestamp:local": "dotenv -v VITE_APP_ENV=local -- turbo get-block-timestamp --filter=contracts",
     "contracts:get-block-timestamp:testnet": "dotenv -v VITE_APP_ENV=testnet -- turbo get-block-timestamp --filter=contracts",
-    "contracts:get-block-timestamp:mainnet": "dotenv -v VITE_APP_ENV=mainnet -- turbo get-block-timestamp --filter=contracts"
+    "contracts:get-block-timestamp:mainnet": "dotenv -v VITE_APP_ENV=mainnet -- turbo get-block-timestamp --filter=contracts",
+    "translate": "dotenv -e .env npx translo-cli@latest",
+    "prepare": "husky",
+    "lint-staged": "lint-staged"
   },
   "devDependencies": {
     "dotenv-cli": "latest",
+    "husky": "9.1.6",
+    "lint-staged": "15.2.10",
     "turbo": "^1.13.3",
     "typescript": "^5.4.5"
   },

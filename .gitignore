@@ -22,7 +22,13 @@ dist-ssr
 *.sln
 *.sw?
 
+# Terraform files
+.terraform/
+.terraform.lock.hcl
+**/.terraform/
+**/.terraform.lock.hcl
 
+# Environment variables
 .env
 .env.solo
 .env.testnet
@@ -63,13 +69,10 @@ packages/contracts/temp-verify-*
 packages/contracts/scripts/token-manager/results/migration-dryrun-*.json
 packages/contracts/scripts/token-manager/results/migration-results-local.json
 packages/contracts/scripts/token-manager/results/migration-results-devnet.json
-packages/contracts/scripts/token-manager/data/
 packages/contracts/scripts/claim-base-rewards/results/base-rewards-dryrun-*.json
 packages/contracts/scripts/claim-base-rewards/results/base-rewards-results-local.json
-packages/contracts/scripts/claim-base-rewards/data/
 packages/contracts/scripts/claim-delegation-rewards/results/delegation-rewards-dryrun-*.json
 packages/contracts/scripts/claim-delegation-rewards/results/delegation-rewards-results-local.json
-packages/contracts/scripts/claim-delegation-rewards/data/
 packages/contracts/scripts/claim-rewards/data/
 
 packages/contracts-artifacts/artifacts/

@@ -19,11 +19,11 @@ jobs:
       contracts-changed: ${{ steps.changes.outputs.contracts }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+        uses: actions/checkout@v3
 
       - name: Check for changes
         id: changes
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        uses: dorny/paths-filter@v3
         with:
           filters: |
             contracts:
@@ -68,6 +68,14 @@ jobs:
             label: StargateNFT Settings
           - shard: shard-u107
             label: StargateNFT Token
+          - shard: shard-u108
+            label: StargateNFT Pausing
+          - shard: shard-u109
+            label: StargateNFT Getters
+          - shard: shard-u110
+            label: StargateNFT Callback
+          - shard: shard-u111
+            label: StargateNFT Initialize
 
     steps:
       - name: Checkout repository
