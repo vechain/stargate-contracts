@@ -49,7 +49,7 @@ export async function checkContractsDeployment() {
                 // deploy the contracts and override the config file
                 const newAddresses = await deployAll(getContractsConfig(config.environment));
 
-                return await overrideLocalConfigWithNewContracts(newAddresses, config.network);
+                return await overrideLocalConfigWithNewContracts(newAddresses);
             } else console.log(`Skipping deployment on ${network.name}. Not solo or testnet.`);
         } else console.log(`StargateNFT contract already deployed, skipping deployment...`);
     } catch (e) {

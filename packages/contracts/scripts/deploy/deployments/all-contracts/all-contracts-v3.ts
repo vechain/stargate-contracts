@@ -312,7 +312,7 @@ async function main() {
         console.log(`  • ${name}: ${address}`);
     });
 
-    await overrideLocalConfigWithNewContracts(contractAddresses, appConfig.network);
+    await overrideLocalConfigWithNewContracts(contractAddresses);
     await saveContractsToFile(contractAddresses as unknown as Record<string, string>, libraries);
     console.log("💾 Contract addresses saved to file and config overridden");
 
