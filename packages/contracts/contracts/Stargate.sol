@@ -232,13 +232,14 @@ contract Stargate is
         uint256 _tokenId
     ) external whenNotPaused onlyTokenOwner(_tokenId) nonReentrant {
         StargateStorage storage $ = _getStargateStorage();
-        Delegation memory delegation = _getDelegationDetails($, _tokenId);
-        DataTypes.Token memory token = $.stargateNFTContract.getToken(_tokenId);
 
         // if the token is under the maturity period, we cannot unstake it
         if ($.stargateNFTContract.isUnderMaturityPeriod(_tokenId)) {
             revert TokenUnderMaturityPeriod(_tokenId);
         }
+
+        Delegation memory delegation = _getDelegationDetails($, _tokenId);
+        DataTypes.Token memory token = $.stargateNFTContract.getToken(_tokenId);
 
         // check the delegation status
         // if the delegation is active, then NFT cannot be unstaked, since the VET is locked in the protocol
@@ -256,18 +257,22 @@ contract Stargate is
                 token.levelId
             );
         }
+        // default is unknown
+        uint8 currentValidatorStatus;
+        // default is 0
+        uint32 currentValidatorCompletedPeriods;
 
-        // get the current validator status
-        (, , , , uint8 currentValidatorStatus, ) = $.protocolStakerContract.getValidation(
-            delegation.validator
-        );
+        if (delegation.validator != address(0)) {
+            // get the current validator status
+            (, , , , currentValidatorStatus, ) = $.protocolStakerContract.getValidation(
+                delegation.validator
+            );
+            // get the current validator completed periods
+            (, , , currentValidatorCompletedPeriods) = $
+                .protocolStakerContract
+                .getValidationPeriodDetails(delegation.validator);
+        }
         // get the completed periods of the previous validator
-        (, , , uint32 previousValidationCompletedPeriods) = $
-            .protocolStakerContract
-            .getValidationPeriodDetails(delegation.validator);
-        (, , , , uint8 previousValidationStatus, ) = $.protocolStakerContract.getValidation(
-            delegation.validator
-        );
         bool isInTransitionPeriod = _isInTransitionPeriod($);
         // if the delegation is pending or the validator is exited or unknown
 
@@ -286,9 +291,9 @@ contract Stargate is
                 _tokenId,
                 // if the protocol is in transition period, the current period is the
                 // number of completed periods, so we add 1 instead of 2
-                isInTransitionPeriod || previousValidationStatus == VALIDATOR_STATUS_QUEUED
-                    ? previousValidationCompletedPeriods + 1
-                    : previousValidationCompletedPeriods + 2,
+                isInTransitionPeriod || currentValidatorStatus == VALIDATOR_STATUS_QUEUED
+                    ? currentValidatorCompletedPeriods + 1
+                    : currentValidatorCompletedPeriods + 2,
                 false // decrease
             );
         }
@@ -300,9 +305,9 @@ contract Stargate is
                 _tokenId,
                 delegation.validator,
                 delegation.delegationId,
-                isInTransitionPeriod || previousValidationStatus == VALIDATOR_STATUS_QUEUED
-                    ? previousValidationCompletedPeriods
-                    : previousValidationCompletedPeriods + 1
+                isInTransitionPeriod || currentValidatorStatus == VALIDATOR_STATUS_QUEUED
+                    ? currentValidatorCompletedPeriods
+                    : currentValidatorCompletedPeriods + 1
             );
         }
 
