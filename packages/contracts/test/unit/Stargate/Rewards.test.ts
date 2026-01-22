@@ -1125,4 +1125,96 @@ describe("shard-u4: Stargate: Rewards", () => {
         expect(claimableRewardsBatch2).to.be.equal(0);
         console.log("claimableRewardsBatch2", claimableRewardsBatch2);
     });
+    it("should return the correct locked rewards after an user claims rewards", async () => {
+        // set status to queued to simulate the
+        tx = await protocolStakerMock.helper__setValidatorStatus(
+            validator.address,
+            VALIDATOR_STATUS_QUEUED
+        );
+        await tx.wait();
+        log("\n🎉 Set validator status to queued", validator.address);
+        const levelSpec = await stargateNFTMock.getLevel(LEVEL_ID);
+        tx = await stargateContract.connect(user).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const tokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked token with id:", tokenId);
+
+        // stake other token
+        tx = await stargateContract.connect(otherUser).stake(LEVEL_ID, {
+            value: levelSpec.vetAmountRequiredToStake,
+        });
+        await tx.wait();
+        const otherTokenId = await stargateNFTMock.getCurrentTokenId();
+        log("\n🎉 Staked other token with id:", otherTokenId);
+
+        // delegate both tokens to validator
+        tx = await stargateContract.connect(user).delegate(tokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated both tokens to validator", validator.address);
+        tx = await stargateContract.connect(otherUser).delegate(otherTokenId, validator.address);
+        await tx.wait();
+        log("\n🎉 Delegated other token to validator", validator.address);
+
+        // set status to active to simulate the delegation being active
+        tx = await protocolStakerMock.helper__setValidatorStatus(
+            validator.address,
+            VALIDATOR_STATUS_ACTIVE
+        );
+        await tx.wait();
+        log("\n🎉 Set validator status to active", validator.address);
+
+        // set completed periods for validator
+        tx = await protocolStakerMock.helper__setValidationCompletedPeriods(validator.address, 4);
+        await tx.wait();
+        log("\n🎉 Set validator completed periods to 4");
+
+        // claim rewards for both tokens
+        tx = await stargateContract.connect(user).claimRewards(tokenId);
+        await tx.wait();
+        log("\n🎉 Claimed rewards for token", tokenId);
+
+        // claimable deletion period for token should be (0,0)
+        const claimableDelegationPeriods =
+            await stargateContract.claimableDelegationPeriods(tokenId);
+        expect(claimableDelegationPeriods[0]).to.equal(0);
+        expect(claimableDelegationPeriods[1]).to.equal(0);
+
+        // claimable deletion period for other token should be (0,4)
+        const claimableDelegationPeriodsOther =
+            await stargateContract.claimableDelegationPeriods(otherTokenId);
+        expect(claimableDelegationPeriodsOther[0]).to.equal(1);
+        expect(claimableDelegationPeriodsOther[1]).to.equal(4);
+
+        // simulate that the validator had no rewards for the period 5 yet
+        tx = await protocolStakerMock.helper__setZeroRewardsPerPeriod(5);
+        await tx.wait();
+        log("\n🎉 Set rewards per period to 0 for period 5");
+
+        // locked rewards for token should be 0
+        const tokenLockedRewards = await stargateContract.lockedRewards(tokenId);
+        console.log("tokenLockedRewards", tokenLockedRewards);
+        expect(tokenLockedRewards).to.be.equal(0);
+
+        // locked rewards for other token should be the claimable rewards for period 5
+        const otherTokenLockedRewards = await stargateContract.lockedRewards(otherTokenId);
+        console.log("otherTokenLockedRewards", otherTokenLockedRewards);
+        expect(otherTokenLockedRewards).to.be.equal(0);
+
+        // now the validator should have some rewards for the period 5
+        tx = await protocolStakerMock.helper__setNonZeroRewardsPerPeriod(5);
+        await tx.wait();
+        log("\n🎉 Set rewards per period to non zero for period 5");
+
+        // locked rewards for token should be the claimable rewards for period 5
+        const tokenLockedRewards2 = await stargateContract.lockedRewards(tokenId);
+        console.log("tokenLockedRewards2", tokenLockedRewards2);
+        expect(tokenLockedRewards2).to.be.greaterThan(0);
+
+        // locked rewards for other token should be the claimable rewards for period 5
+        const otherTokenLockedRewards2 = await stargateContract.lockedRewards(otherTokenId);
+        console.log("otherTokenLockedRewards2", otherTokenLockedRewards2);
+        expect(otherTokenLockedRewards2).to.be.greaterThan(0);
+    });
 });

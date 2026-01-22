@@ -33,4 +33,12 @@ export const upgradeConfig: Record<string, UpgradeContract> = {
             v4: "Pause and deprecate the contract.",
         },
     },
+    Stargate: {
+        name: "stargate",
+        configAddressField: "stargateContractAddress",
+        versions: ["v1-hotfix"],
+        descriptions: {
+            "v1-hotfix": "Hot fix: Rewards Drain due to Invalid Last Claimed Period Update",
+        },
+    },
 } as const;

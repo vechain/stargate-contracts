@@ -795,6 +795,13 @@ contract Stargate is
             $,
             _tokenId
         );
+
+        // Early return if there are no claimable periods to prevent resetting lastClaimedPeriod to 0
+        // which would allow double claiming of rewards (F-2026-14785 vulnerability fix)
+        if (lastClaimablePeriod == 0) {
+            return;
+        }
+
         if (_exceedsMaxClaimablePeriods($, _tokenId)) {
             // We have set the max claimable periods to 832
             // since we want to add 831 more periods to the first claimable period
@@ -918,7 +925,9 @@ contract Stargate is
             return 0;
         }
         (, uint32 lastClaimablePeriod) = _claimableDelegationPeriods($, _tokenId);
-
+        if (lastClaimablePeriod == 0) {
+            lastClaimablePeriod = $.lastClaimedPeriod[_tokenId];
+        }
         return _claimableRewardsForPeriod($, _tokenId, lastClaimablePeriod + 1);
     }
 
