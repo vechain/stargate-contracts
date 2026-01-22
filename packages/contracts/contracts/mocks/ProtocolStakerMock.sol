@@ -52,6 +52,10 @@ contract ProtocolStakerMock is IProtocolStaker {
         REWARDS_PER_PERIOD_IS_ZERO[_stakingPeriod] = true;
     }
 
+    function helper__setNonZeroRewardsPerPeriod(uint32 _stakingPeriod) external {
+        REWARDS_PER_PERIOD_IS_ZERO[_stakingPeriod] = false;
+    }
+
     function helper__setFirstActive(address newAddress) external {
         _firstActive = newAddress;
     }
